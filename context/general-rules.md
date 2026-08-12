@@ -1,6 +1,6 @@
 # General Rules
 
-Stable, rarely-edited conventions that apply regardless of task type. One-off lessons-learned live in `gotchas.md` (append-only, never edit this file for those). Distilled from a prior project's `conventions.md` and `pm-system.md`, keeping only what isn't tied to a specific framework.
+Stable, rarely-edited conventions that apply regardless of task type. Lessons-learned get written directly into whichever `context/document-writer-only/*.md` conventions doc they concern (or here, if the lesson is cross-cutting and not about a specific diagram/artifact type) as part of finishing the task that surfaced them — not staged in a separate gotchas file first. A prior version of this project kept a standalone `gotchas.md`; in practice every entry there ended up duplicated into the relevant conventions doc anyway, so the staging step was dropped and the file emptied. Distilled from a prior project's `conventions.md` and `pm-system.md`, keeping only what isn't tied to a specific framework.
 
 **Current scope**: this project is documentation-only right now (Phase 1 — BPMN, ERD, workbook, class/component/state diagrams, elicitation). No stack has been chosen and no code exists yet — `coding-conventions/` and coding-phase guides don't exist yet either; they'll be added when the project actually reaches implementation, not before.
 

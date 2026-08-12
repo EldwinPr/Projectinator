@@ -1,6 +1,6 @@
 ---
 name: bpmn-drawio-author
-description: Use when creating or fixing BPMN diagrams (or other .drawio files — ERD, class, state, component) for this project. Handles authoring draw.io XML by hand, applying this repo's verified sizing/spacing/labeling conventions, and validating + visually verifying the render before reporting done. Proactively use this agent for any task that says "make/build/fix a BPMN diagram," "draw a process," or asks to add/edit a Level 1/2/3 page in a .drawio file.
+description: Use when creating or fixing BPMN diagrams (or state/component .drawio diagrams, which don't yet have their own dedicated agent) for this project. ERD work has its own agent (erd-drawio-author) and class diagrams have their own agent (class-diagram-drawio-author) — prefer those for that work instead of this one. Handles authoring draw.io XML by hand, applying this repo's verified sizing/spacing/labeling conventions, and validating + visually verifying the render before reporting done. Proactively use this agent for any task that says "make/build/fix a BPMN diagram," "draw a process," or asks to add/edit a Level 1/2/3 page in a .drawio file.
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
 ---
@@ -9,9 +9,10 @@ You author and fix BPMN (and other) diagrams as hand-written draw.io XML for thi
 
 ## Before writing any XML
 
-1. Read `context/document-writer-only/bpmn-conventions.md` in full. It is the current source of truth — sizing, spacing, labeling, gateway/event/task style strings, Level 1/2/3 structural rules, all corrected through real trial-and-error this project has already paid for. Do not use general BPMN/draw.io knowledge in place of it; this project's installed shape library has repeatedly diverged from spec-plausible attribute names.
-2. Check `context/document-writer-only/examples/elements.drawio` — a living reference file with one labeled instance of every shape/marker this project uses. If the conventions doc and this file ever disagree, trust the file and flag the doc as stale.
-3. Look at `context/document-writer-only/examples/retail-store-bpmn-levels.drawio` and `food-stand-bpmn.drawio` for worked examples of full Level 1→2→3 structure and Collaboration diagrams, respectively.
+1. Read `context/document-writer-only/drawio-general-guide.md` in full. It covers the mandatory workflow (author → validate → export → visually verify → fix), environment specifics (where the CLI lives, harmless GPU-cache noise), and structural gotchas that apply across every diagram type this project authors (z-order, coordinate-space offsets, converging-edge and parallel-jog overlaps) — read it once per session, not just for BPMN.
+2. Read `context/document-writer-only/bpmn-conventions.md` in full for BPMN specifically (state/component diagrams: the matching `state-conventions.md` / `../guide/component-conventions.md` — ERD and class diagrams have their own dedicated agents, `erd-drawio-author` and `class-diagram-drawio-author`, prefer those instead of this one for that work). It is the current source of truth — sizing, spacing, labeling, gateway/event/task style strings, Level 1/2/3 structural rules, all corrected through real trial-and-error this project has already paid for. Do not use general BPMN/draw.io knowledge in place of it; this project's installed shape library has repeatedly diverged from spec-plausible attribute names.
+3. Check `context/document-writer-only/examples/elements.drawio` — a living reference file with one labeled instance of every shape/marker this project uses. If the conventions doc and this file ever disagree, trust the file and flag the doc as stale.
+4. Look at `context/document-writer-only/examples/retail-store-bpmn-levels.drawio` and `food-stand-bpmn.drawio` for worked examples of full Level 1→2→3 structure and Collaboration diagrams, respectively.
 
 ## Rules that have caused real, repeated bugs — do not relearn these the hard way
 
@@ -29,6 +30,9 @@ You author and fix BPMN (and other) diagrams as hand-written draw.io XML for thi
 - **Avoiding Message Flow crossings**: when two Message Flows must cross the same gap between two Pools, don't just compute dodge-waypoints — if the two connectors' endpoint x-ranges overlap, one will cross the other *somewhere* in the gap no matter where the horizontal jog sits (this is topological, not a spacing problem). The real fix is structural: reposition the connected elements (e.g. reorder rows within a Lane) so the two endpoints share the same x-coordinate. A Message Flow between x-aligned elements renders as a single straight line with zero bends and can't cross anything else by construction.
 - For a short hop between two already-close, adjacent shapes, a single manually-placed diagonal waypoint often reads cleaner than forcing a full orthogonal elbow into a tight space — a deliberate technique, not a routing mistake.
 - Lightweight external participants (an outside party with no internal detail worth showing) can be a plain rectangle (`style="whiteSpace=wrap;html=1;"`) instead of a full black-box Pool — less visual weight when the other side is genuinely just "the far end of a message."
+- **Pool vertical order in a multi-pool Collaboration diagram**: the pool being documented — the "subject" organization whose process this diagram exists to show — goes topmost. External/other participants (a Customer, a Payment Gateway, a third-party system) go below it. Confirmed as this project's preference, not a BPMN spec rule — don't default to alphabetical or narrative order.
+- **A same-lane connector waypoint placed close to the lane's own height boundary (within ~20px) visually merges with the lane's border line** in the rendered PNG — indistinguishable from the boundary itself, easy to miss without a cropped close-up. When routing a backward/loop-back connector within one lane (e.g. a "retry" edge back to an earlier gateway), route it through the actual empty gap *between* rows (e.g. between a main row ending at y=100 and a branch row starting at y=140 — use y≈120) rather than hugging near y=0 or the lane's full height.
+- Converging-edge and parallel-jog overlaps (two connectors landing on the same entry point, or two jogs sharing a corridor too close together) are **not BPMN-specific** — see `context/document-writer-only/drawio-general-guide.md` for both, plus the mandatory cropped-close-up verification step. Apply that guide's workflow on every diagram type, not just BPMN.
 
 ## Level structure (when building a multi-page hierarchy, not a single simple diagram)
 
@@ -40,11 +44,11 @@ You author and fix BPMN (and other) diagrams as hand-written draw.io XML for thi
 
 ## Required workflow — every time, no exceptions
 
-1. Author or edit the XML.
-2. Validate it's well-formed: `python -c "import xml.dom.minidom as m; m.parse('PATH')"` (or equivalent).
-3. Export the relevant page(s) to PNG using the draw.io Desktop CLI (locate the executable — commonly `C:\Program Files\draw.io\draw.io.exe` on Windows — via the `drawio` skill if unsure) and **actually look at the rendered image** (read it as an image, don't just trust the XML). Check specifically for: overlapping shapes, a label sitting on top of a shape or a connector line, gateway labels correctly positioned and not colliding with anything, Message Flow lines crossing each other unnecessarily, lane/pool labels not clipped.
-4. Fix anything wrong and re-export until the render is actually clean. Do not report the diagram finished on the strength of the XML alone — every non-trivial diagram this project has built needed at least one render-driven fix that wasn't visible from reading the XML.
-5. Delete throwaway export PNGs when done (this project's convention is to keep only the `.drawio` source under version control) unless the user has asked to keep one for review.
+Follow `context/document-writer-only/drawio-general-guide.md`'s mandatory workflow (author →
+validate → export → visually verify with cropped close-ups where things look crowded → fix →
+cleanup). BPMN-specific things to check on top of that guide's general checklist: gateway labels
+correctly positioned and not colliding with anything, Message Flow lines crossing each other
+unnecessarily, lane/pool labels not clipped.
 
 ## When something in the conventions doc seems wrong or incomplete
 

@@ -9,17 +9,34 @@ the close checklist below apply regardless of which issue you're on.
 ## Context — read only when relevant, not up front
 
 - Drafting BPMN, use cases, or the workbook → `context/document-writer-only/*.md`
-- Authoring or fixing a `.drawio` file (BPMN, ERD, class, state, component) →
-  `context/document-writer-only/bpmn-conventions.md` (or the matching
-  `*-conventions.md`) for the rules, plus
-  `context/document-writer-only/examples/` for verified worked examples and
+- Authoring or fixing a `.drawio` file → delegate to the matching dedicated
+  agent — `bpmn-drawio-author` (BPMN, and state/component until those get
+  their own), `erd-drawio-author` (ERD), or `class-diagram-drawio-author`
+  (class diagrams). Each already knows to read
+  `context/document-writer-only/drawio-general-guide.md` (cross-cutting
+  workflow and gotchas — mandatory export-and-visually-verify discipline,
+  z-order, overlap pitfalls) plus its own `*-conventions.md`,
+  `context/document-writer-only/examples/` for verified worked examples, and
   `elements.drawio`, the living shape-style reference palette — check the
   palette before guessing a style string, and re-derive the conventions doc
   from it if they ever disagree.
+- Editing `docs/workbook.xlsx` (deriving UCs from a BPMN, promoting a
+  confirmed request, refreshing the Entities dedup) → delegate to the
+  `workbook-xlsx-author` agent, or read
+  `context/document-writer-only/workbook-conventions.md` directly for the
+  UC-derivation rule and the `openpyxl` editing gotchas.
 - Need a second opinion / independent audit → `context/guide/cross-model-review.md`
 - Documenting how modules communicate → `context/guide/component-conventions.md`
-- A recurring gotcha, or about to add one → `context/gotchas.md` (append only,
-  newest entry on top — never edit in the middle)
+- Learned something durable while doing a task → write it directly into the
+  relevant `context/document-writer-only/*.md` (or `context/general-rules.md`
+  if it's cross-cutting) as part of finishing that task — not into a separate
+  staging file first.
+- Just testing/demoing the framework itself, not real client work → keep
+  every artifact under `context/document-writer-only/examples/` and never
+  touch `docs/workbook.xlsx`, `docs/requests.md`, or `pm/` — those hold the
+  real project's tracked state, not scratch space for a demo. If it's
+  unclear whether a request is a framework test or real work, ask before
+  writing to any of those.
 
 ## Hard gates — never skip these
 
@@ -57,6 +74,10 @@ the close checklist below apply regardless of which issue you're on.
   looking at the render — a diagram that "should" be right per the XML has
   repeatedly turned out to have overlapping shapes, labels sitting on top of
   connectors, or crossing Message Flows once actually rendered.
+- Don't leave XML comments (`<!-- -->`) in a `.drawio` file — well-formedness
+  validation doesn't catch them, and simply knowing the rule hasn't stopped
+  it from happening twice already; `grep -c '<!--'` the file before calling
+  it done (see `context/document-writer-only/drawio-general-guide.md`).
 
 ## Terminology rule
 

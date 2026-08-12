@@ -23,9 +23,23 @@ Set as `startArrow=<value>` / `endArrow=<value>` on the connecting edge — one 
 
 The model should mirror what the ORM can express cleanly — one-to-many, many-to-many, and simple one-to-one relationships — not aspirational modeling that fights the ORM once real code is written. If a relationship needs something an ORM handles awkwardly (a relation with its own attributes, a genuinely polymorphic relation, a self-referencing hierarchy), flag it explicitly on the diagram rather than drawing it as if it were a plain relationship — the awkwardness should be visible at design time, not discovered at migration time.
 
+**Draw a many-to-many directly only when the relationship itself carries no independent meaning.** If the M:N has a real business name (a recipe/BOM, an enrollment, an assignment), give it an explicit junction table instead — e.g. `Menu_Item ↔ Ingredient` should be `Menu_Item —< Recipe_List >— Ingredient`, not a bare M:N edge, because "which ingredients a dish needs" is a concept the client would recognize and name, not an ORM implementation detail. A direct M:N edge is still fine for genuinely meaningless pivots (tags on a post, for instance).
+
+**A table that represents a staff-performed action needs a `Staff_Id` FK** — if a UC's actor is a named staff role (Cook, Server, Kitchen Staff, Cashier) and the action produces or updates a row, that row should record who did it. Prefer attaching the FK to the **natural process record that already exists** (e.g. `Order_Detail.Cook_Id` / `Order_Detail.Server_Id`) over inventing a wrapper entity whose only job is to hold the attribution (an earlier pass on the restaurant demo added a `Kitchen_Ticket` table for exactly this and then had to remove it once `Order_Detail` was recognized as the real process record — a separate "ticket" entity added nothing once staff could be attributed directly on the line item).
+
+**An inventory/stock entity should default to being a transaction ledger, not a snapshot**, unless told otherwise — a "kartu stock" (stock card) pattern: one row per movement, a `Type` discriminator (Input / Output / Adjustment), and a nullable FK to whatever triggered the movement (e.g. `Stock_Card.Order_Detail_Id` for Output-type rows consumed by an order). A single mutable "current quantity" column looks simpler but throws away the audit trail and the "why did this change" question a real inventory feature always ends up needing.
+
 ## Naming stays code-legal
 
 Table names and column names on this diagram follow whatever `coding-conventions/*.md` already commits to for this project (ULID primary keys, no DB-level enums, soft-delete columns, naming case convention, etc.) — this diagram should never show a design that the coding conventions would then forbid once it's turned into a real migration. If the ERD and a coding-conventions file disagree, fix the ERD; the coding conventions are the constraint, not a suggestion to negotiate around at diagram time.
+
+## Grouping entities by Module
+
+Visually cluster entities by their owning workbook `Modul` (`document-writer-only/workbook-conventions.md`'s Modules sheet) — makes a growing ERD legible at a glance and keeps it traceable back to the workbook. Draw each module as a plain dashed rectangle (`rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=8;spacingTop=6;fontStyle=1;fontColor=#666666;`, module name as `value=`) sized to enclose that module's tables, placed **before** the tables in document order so it renders behind them (z-order follows document order in draw.io — later cells draw on top). This is a background rectangle, not a true parent container — entity tables keep absolute coordinates rather than becoming children of the group, which avoids the Lane-relative-coordinate arithmetic that BPMN Pools/Lanes require (see `bpmn-conventions.md`'s coordinate-space warning). Relationships crossing module boundaries are normal and fine — an ERD tolerates more line crossings than a BPMN diagram; route them through the gap between group boxes, not through another group's tables.
+
+## PK/FK-only draft pass
+
+For a new or fast-growing ERD, it's fine to draft with **only the PK row and any FK rows** per table (name, no other business columns) before deciding real attributes — this validates the relationship/cardinality model cheaply and matches the workbook's Entities sheet, which also doesn't carry attribute-level detail yet. Add business columns once they're actually known; don't block the relationship diagram on knowing every field first.
 
 ## Lifecycle
 
