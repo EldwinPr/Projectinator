@@ -137,9 +137,8 @@ Delegate rather than hand-authoring; each one already knows which conventions to
 
 | Agent | Use for |
 |---|---|
-| `bpmn-drawio-author` | BPMN diagrams (also state/component until those get their own agents) |
-| `erd-drawio-author` | ERD entities, PK/FK rows, Crow's Foot relationships |
-| `class-diagram-drawio-author` | Per-module class diagrams |
+| `bpmn-drawio-author` | BPMN diagrams |
+| `diagram-drawio-author` | Every other `.drawio`: ERD, class, state, component |
 | `workbook-xlsx-author` | Deriving UCs, promoting requests, refreshing the Entities dedup |
 
 ## Environment notes

@@ -135,7 +135,7 @@ diagram and the workbook stop agreeing about what the actor does.
 
 Rationale: a use case is a complete, actor-meaningful interaction, not an internal computation
 step — "generate a receipt" is never something anyone sets out to do on its own. This was a
-real correction made while deriving UCs for `context/document-writer-only/examples/restaurant-bpmn.drawio` — an initial pass
+real correction made while deriving UCs for `context/document-writer-only/examples/restaurant demo/restaurant-bpmn.drawio` — an initial pass
 gave every BPMN task its own row (11 rows) before being consolidated to 5, one per User task.
 
 Lands on sheet **UC BPMN**.

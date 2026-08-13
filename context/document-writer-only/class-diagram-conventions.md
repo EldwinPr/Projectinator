@@ -15,8 +15,8 @@ Once this project's stack/architecture is settled, record the *actual* recurring
 If EBC/BCE is the confirmed architecture, structure the diagram as three left-to-right bands —
 Boundary, Control, Entity — with a dependency arrow only ever pointing rightward (Boundary →
 Control → Entity), never entity-to-control or control-to-boundary. Verified on the restaurant
-demo (`context/document-writer-only/examples/restaurant-class-order-management.drawio`,
-`context/document-writer-only/examples/restaurant-class-full.drawio`):
+demo (`context/document-writer-only/examples/restaurant demo/restaurant-class-order-management.drawio`,
+`context/document-writer-only/examples/restaurant demo/restaurant-class-full.drawio`):
 
 - **Stereotype label**: prefix the class name with `«boundary»` / `«control»` / `«entity»` on its
   own line above the name, inside the same box — not a separate shape. In XML, the angle quotes

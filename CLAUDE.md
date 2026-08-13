@@ -10,9 +10,8 @@ the close checklist below apply regardless of which issue you're on.
 
 - Drafting BPMN, use cases, or the workbook → `context/document-writer-only/*.md`
 - Authoring or fixing a `.drawio` file → delegate to the matching dedicated
-  agent — `bpmn-drawio-author` (BPMN, and state/component until those get
-  their own), `erd-drawio-author` (ERD), or `class-diagram-drawio-author`
-  (class diagrams). Each already knows to read
+  agent — `bpmn-drawio-author` for BPMN, `diagram-drawio-author` for
+  everything else (ERD, class, state, component). Each already knows to read
   `context/document-writer-only/drawio-general-guide.md` (cross-cutting
   workflow and gotchas — mandatory export-and-visually-verify discipline,
   z-order, overlap pitfalls) plus its own `*-conventions.md`,
