@@ -70,6 +70,39 @@ Decision heuristic: business rule/condition on data → Exclusive. Things litera
 
 Complex gateway (§10.5.5, arbitrary activation conditions) exists in the spec and in this project's verified palette (`gwType=complex`) but essentially never shows up in a business-elicitation diagram; omit it from the toolkit unless a process genuinely can't be expressed with the four above.
 
+### No implicit merge — every convergence gets a gateway
+
+**Never let more than one Sequence Flow land on the same Task or Event.** Two or more incoming Sequence Flows on an activity is an **implicit merge** (the spec's wider term for flow not routed through a gateway is *uncontrolled flow*, §13) — always insert an explicit converging gateway instead. This is the single most-cited rule in Bruce Silver's *BPMN Method and Style*, and per this project's [terminology rule](../general-rules.md#terminology-rule) that's the practitioner source we follow for it.
+
+The spec permits implicit merge, so it will never fail validation — that's exactly why it's dangerous. Its defined semantics are that **each arriving token fires the activity independently**, i.e. it silently behaves as **XOR**, with no waiting. So a modeller who meant "wait for both branches" (AND-join) gets a diagram that looks right and means the opposite, and nothing flags it. Making the merge explicit forces the author to state which of the three they meant, which is the whole reason the symbol carries information:
+
+| Converging gateway | Semantics |
+|---|---|
+| Exclusive (XOR) | first token passes straight through, no waiting — exactly one path was live |
+| Parallel (AND) | **blocks** until every incoming path has arrived |
+| Inclusive (OR) | blocks until all *currently active* branches arrive |
+
+**Retry/loop-backs are the most common source** — a loop returning to a step that already has an inbound flow creates the merge without anyone noticing. Send the loop into a converging Exclusive gateway placed just before that step, and route the normal inbound flow through the same gateway. Both loops in `context/document-writer-only/examples/movie-booking-bpmn.drawio` were built this way after an initial version landed the retry directly on a User task and a catch event.
+
+A converging gateway stays **unlabeled** (no decision is being made there) — see the labelling rule under [Sizing and spacing](#drawio-shape-mapping).
+
+**Message Flow does not count.** The rule is about Sequence Flow only; a catch event with one incoming Sequence Flow plus one incoming Message Flow is normal and correct. Check with:
+
+```bash
+python - <<'EOF'
+import xml.etree.ElementTree as ET
+from collections import Counter
+t = ET.parse('diagram.drawio'); seq = Counter(); ids = {}
+for c in t.iter('mxCell'):
+    if c.get('vertex') == '1': ids[c.get('id')] = c.get('style','')
+    if c.get('edge') == '1' and c.get('target') and 'startArrow=oval' not in c.get('style',''):
+        seq[c.get('target')] += 1
+print([(k,v) for k,v in seq.items() if v > 1 and 'gateway2' not in ids.get(k,'')] or "NONE")
+EOF
+```
+
+`startArrow=oval` is what distinguishes a Message Flow from a Sequence Flow in this project's style strings (see the connector table below). Anything this prints is an implicit merge that needs a gateway.
+
 ## Event types
 
 Events are circles; border thickness marks Start (thin) vs Intermediate (double) vs End (thick) (§10.4). The icon inside marks the trigger/result. draw.io renders every event as `shape=mxgraph.bpmn.event` with two attributes doing the work: `outline=` picks the border style (which position/interrupt-behavior it is) and `symbol=` picks the trigger icon:
@@ -181,6 +214,12 @@ Style: `shape=mxgraph.bpmn.data2;labelPosition=center;verticalLabelPosition=bott
 **Straight vs. routed connectors**: `edgeStyle=orthogonalEdgeStyle;...;jettySize=auto;` is the default and usually right, but it can insert small jetty jogs even on a connector whose endpoints are already pinned to the same vertical/horizontal line (confirmed while straightening the Staff Management message flows) — if a connector should be perfectly straight, drop `edgeStyle=` entirely (a bare style with no `edgeStyle=` key renders a direct straight line between the pinned `exitX`/`entryX` points) rather than fighting the orthogonal router. Conversely, for a short hop between two adjacent, already-close shapes where a full orthogonal elbow would look cramped/kinked, a single manually-placed diagonal waypoint (`<Array as="points"><mxPoint x="…" y="…"/></Array>` inside the edge's `<mxGeometry>`) reads cleaner than forcing multiple 90°-only segments into a tight space — a legitimate, deliberately-used technique in this project's Process Return page, not a routing mistake to "fix."
 
 **Prefer x-alignment over dodge-waypoints for avoiding Message Flow crossings**: when a Collaboration diagram has multiple Message Flows crossing the same gap between two Pools, the tempting fix for a crossing is to compute waypoints that route one line around the other — but that only pushes the crossing somewhere else if the two connectors' endpoint x-ranges still overlap (a real case worked through on `context/document-writer-only/examples/food-stand-bpmn.drawio`: an "Order + Payment" flow spanning x=100–360 and a "Sold Out Notice" flow nested inside that range at x=200–280 will cross *somewhere* in the gap no matter where either one's horizontal jog is placed, because one of Sold Out Notice's vertical segments is topologically forced to cross Order + Payment's horizontal segment). The stronger fix is **structural, not routing**: reposition the two connected elements (by reordering rows within a Lane, e.g. putting a decline-branch event in a row above the happy path instead of below it) so their x-coordinates coincide exactly. A Message Flow between two x-aligned elements renders as a single straight vertical line with zero bends, which can't cross anything else by construction — no waypoint math needed, and no risk of a future edit reintroducing the crossing. Reach for this before reaching for waypoints whenever the diagram's layout has any freedom to move the source/target elements at all; save manual waypoints for cases where the elements' positions are otherwise fixed (e.g. by the gateway-branch alignment rule above).
+
+**Route loop-back Sequence Flows on the lane side *away* from the Message Flows.** In a Collaboration diagram every Message Flow attaches on the side of a Pool that faces the other Pool — for a two-Pool stack that means the upper Pool's message endpoints are all on its elements' *bottoms* and the lower Pool's are all on its elements' *tops*. So the upper Pool's lane is completely free **above** its element row, and the lower Pool's is free **below** its row. Put each Pool's retry/loop-back corridor in its own free band (upper Pool loops above, lower Pool loops below) and a loop can never cross a Message Flow. Getting this backwards is not a cosmetic problem — a loop-back routed into the message band crosses every vertical Message Flow it spans (validated while building `context/document-writer-only/examples/movie-booking-bpmn.drawio`, where the customer's "choose other seats" loop spans four of them). Leave ~60px between the element row's labels and the loop corridor.
+
+**A gateway's branch connector and the gateway's own label fight for the same side.** The label sits below the diamond by default (see Sizing and spacing), so a branch flow that also *leaves* downward runs its vertical segment straight through that label — and equally, a branch that lands on an event whose label is on the connector's side will strike through that event's label instead. Two verified fixes, in order of preference: (1) send the branch out of the opposite side and flip only that gateway's label with `verticalLabelPosition=top;verticalAlign=bottom;` (the rest of the string unchanged); (2) if the branch target must stay put, offset the target off the gateway's centre axis and pin the route with `exitX`/`exitY` + `entryX`/`entryY` **plus** an explicit waypoint. Fix (2) alone is not enough — leaving the router to choose with only the target moved sent the flow straight through an adjacent Task in a real render before the waypoint was added.
+
+**Modelling a request/response cycle that can retry, without an Event-based gateway.** The natural BPMN for "submit, get one of two answers back, retry on failure" is an Event-based gateway on the requester's side — but that shape is unverified in this project's palette (see Gateway types). The verified substitute: have the responding Pool send **one** result message from a single throwing Intermediate Message event, then place an Exclusive gateway *after* the throw on each side — the responder's gateway routes its own continuation (wait for the next step, or loop back to its catch event), the requester's gateway routes on the result content. Both sides loop back to the same pair of events, so the retry cycle stays symmetric and every Message Flow keeps a 1:1 source→target mapping. Two throw events feeding one catch event is the tempting alternative and should be avoided: it forces at least one Message Flow off the vertical and makes the converging edges liable to merge visually (see the converging-edge gotcha in `drawio-general-guide.md`).
 
 Anything not covered above (Text Annotation is just a plain `text;` shape with no BPMN-specific stencil; Group is a generic dashed-rectangle container) — open the draw.io desktop app's "BPMN" shape panel and inspect directly, or check `context/document-writer-only/examples/elements.drawio`, rather than guessing.
 

@@ -31,6 +31,10 @@ the close checklist below apply regardless of which issue you're on.
   relevant `context/document-writer-only/*.md` (or `context/general-rules.md`
   if it's cross-cutting) as part of finishing that task — not into a separate
   staging file first.
+- Client handed over raw material (photos, scans, exports, emails, transcripts) →
+  file it under `input/<YYYY-MM-DD-slug>/` with a `notes.md`; read `input/README.md`
+  for the intake rule. Published third-party specs go to `context/files/` instead —
+  the split is provenance, not format.
 - Just testing/demoing the framework itself, not real client work → keep
   every artifact under `context/document-writer-only/examples/` and never
   touch `docs/workbook.xlsx`, `docs/requests.md`, or `pm/` — those hold the
@@ -51,6 +55,13 @@ the close checklist below apply regardless of which issue you're on.
   been promoted.
 - `docs/requests.md` is append-only capture, never a task queue — don't work
   a request directly; promote it to the workbook first.
+- `input/` is never worked from directly either — extract and classify raw
+  material into `requests.md` (or a BPMN, or an FR list) before anything
+  downstream reads it. Same rule as `requests.md`, one layer earlier.
+- Don't cite a source document that isn't in `input/` or `context/files/`. If
+  the file can't be committed, commit a stub naming it and where it lives — a
+  citation nobody can open is a claim, not a citation, and the rule behind it
+  ends up re-argued from memory.
 
 ## Forbidden patterns
 

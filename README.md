@@ -20,6 +20,8 @@ or project-management state.
 | `context/document-writer-only/examples/` | Verified worked examples + `elements.drawio`, the living shape palette. |
 | `context/guide/` | Component-diagram conventions; cross-model review workflow. |
 | `context/index/` | `map.yaml` (UC/FEAT → code) and `decisions.md` (durable architectural decisions). |
+| `context/files/` | Published third-party specs the conventions are distilled from (OMG BPMN, UML). |
+| `input/` | Raw client source material, one folder per intake event. The substrate everything else derives from. |
 | `docs/` | The real client deliverables: `workbook.xlsx`, `requests.md`, `nfr.md`, `statuses.md`, `rbac-entities.csv`. |
 | `pm/` | Project state: `tracker.yaml` (the board), `active.json` (current issue), `log.md` (append-only history). |
 | `.claude/agents/` | Specialist subagents for the artifacts that have repeatable, error-prone rules. |
@@ -28,7 +30,8 @@ or project-management state.
 ## The pipeline
 
 ```
-elicitation notes
+input/  ── raw client material: photos, scans, exports, emails, transcripts
+      │        (append-only; never worked from directly)
       │
       ├─→ as-is BPMN ──→ gap discussion with client ──→ to-be BPMN (confirmed)
       │                                                        │
@@ -45,6 +48,32 @@ docs/requests.md ──(promotion, once confirmed)──→   docs/workbook.xlsx
                                                              ▼
                                         pm/tracker.yaml issue → plan.md → work → close
 ```
+
+### The input layer
+
+Requirements arrive in one of three already-formalised shapes — a **BPMN** process model, a
+written **FR** list, or a raw **stakeholder request**. `input/` sits underneath all three: it is
+the unclassified material they were formalised *from*, and it exists to make one guarantee hold —
+**every downstream artifact can name the thing that justified it.**
+
+Without it, the first arrow above has no artifact behind it, and the only surviving record of why
+a rule exists is the rule itself. The failure is quiet: a diagram says the seat hold is ten
+minutes, nobody can find who said ten, and a year later it gets re-decided from memory.
+
+The discipline that keeps it from becoming a junk drawer is small:
+
+- One folder per **intake event** (`input/YYYY-MM-DD-<slug>/`), grouped by when and from whom —
+  never by file type.
+- Every folder carries a `notes.md` recording source, date, contents, and what was extracted.
+  Its `## Extracted` list doubles as the queue: **empty means not yet mined.**
+- Append-only. A correction is a new intake event that supersedes the old one — the layer records
+  what was actually said, including what later turned out to be wrong.
+- Never worked from directly; material is extracted into `docs/requests.md` (or a BPMN, or an FR
+  list) and classified there first.
+
+Client material and published standards are kept apart on provenance: `input/` is what the client
+gave us, `context/files/` is what a standards body published (the OMG BPMN and UML specs the
+conventions are distilled from). Full rules in `input/README.md` and `context/files/README.md`.
 
 ### BPMN levels
 
@@ -76,6 +105,10 @@ These are non-negotiable and live in `CLAUDE.md`:
   silently skipped.
 - Every use case has an owning workbook row before it becomes a tracked issue.
 - `docs/requests.md` is append-only capture, never a task queue — promote to the workbook first.
+- `input/` is never worked from directly — extract and classify into `requests.md` (or a BPMN, or
+  an FR list) first. Same rule, one layer earlier.
+- A cited source must exist. If a conventions file or diagram cites a source document, that
+  document — or a stub naming it and where it lives — is present in `input/` or `context/files/`.
 - Preflight before implementation: declared dependencies Done in `pm/tracker.yaml`, no scope
   overlap with another active issue.
 

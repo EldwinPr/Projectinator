@@ -31,6 +31,50 @@ Skipping straight to step 6 (moving on without the trail) is what makes old work
 
 When a diagram/document concept has multiple competing informal definitions across sources (e.g. "BPMN Level 0" meaning either a single context diagram or a full landscape depending on source), don't invent our own definition — find the version used by a recognized practitioner standard closest to our context (SAP/Signavio for process architecture, since ERP clients are more likely to have encountered that vocabulary than an academic alternative) and cite it explicitly in the relevant conventions file. This keeps our terminology defensible/citable to a client or reviewer, rather than internally consistent but unrecognizable outside this repo.
 
+## Working discipline
+
+Cross-cutting lessons about *how to work in this repo*, distinct from the artifact-specific
+conventions in `document-writer-only/`. Each one is here because it actually went wrong.
+
+**A new rule must reproduce the existing worked example before it may claim to replace or
+generalise an older one.** The examples in `document-writer-only/examples/` are the regression
+suite for the conventions, not decoration. Adding an abstraction and asserting that an existing
+rule is "a specialisation" of it is a claim with a cheap test: run the new rule against the
+worked example and check it yields the same output. This was skipped once — an added use-case
+"admission test" was declared a generalisation of the one-UC-per-User-task rule, when the two
+in fact do opposite things, and the restaurant demo (5 User tasks → 5 UCs) would have falsified
+the claim immediately.
+
+**An explicit written rule outranks in-the-moment reasoning.** When analysis points somewhere
+other than what a conventions file already says, the written rule wins by default: state the
+tension, propose the change, and let the user decide. Don't silently apply the better-seeming
+answer, and don't defend it after the fact — a framework whose rules bend to whoever is holding
+it produces different answers on different days, which is the one thing it exists to prevent.
+
+**Walk every branch of a process model to a terminal state before calling it done.** For each
+path, including every failure branch, ask what the actor does next. A branch that stops with no
+continuation, a decision whose input is never produced, or a step that proceeds regardless of a
+result it was supposed to depend on are all modelling bugs and all invisible if only the happy
+path is read. Three separate rounds of correction on the movie-booking BPMN were exactly this
+class of error, not notation errors.
+
+**A surprising derivation result means "check the rule" first, "check the input" second.** When
+a pipeline yields far less (or more) than expected, the first hypothesis is that the rule being
+applied is wrong; the scope of the input is the second. Reaching for the input explanation first
+turns into defending a broken rule.
+
+**Read the reference material before recommending an architecture, not after.** A recommendation
+assembled from memory and then checked is a recommendation that has already anchored. In this
+repo that means the relevant `document-writer-only/*.md` and the example files before drafting a
+diagram — and, for anything touching an external tool or API, that tool's own current reference
+before proposing a design around it.
+
+**In a design conversation, recommend in prose.** Working through a design with the user is
+discussion, not a form: give the recommendation and the reasoning as text and let them react.
+Reserve structured multiple-choice prompts for a genuine fork where work cannot continue. Equally
+— when the user restates their framing a second time, stop re-deriving it and build on their
+version; continued "correcting" of a model they have already explained twice is not analysis.
+
 ## Two kinds of documentation, kept separate
 
 - **Project management** (`pm/`) — what's active, what's done, what's next. Append/status-only; doesn't explain *how* the system works, only *what happened*.
