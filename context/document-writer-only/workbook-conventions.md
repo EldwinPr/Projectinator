@@ -138,6 +138,25 @@ step — "generate a receipt" is never something anyone sets out to do on its ow
 real correction made while deriving UCs for `context/document-writer-only/examples/restaurant demo/restaurant-bpmn.drawio` — an initial pass
 gave every BPMN task its own row (11 rows) before being consolidated to 5, one per User task.
 
+**`User` comes from the Lane. `Modul` does not.** A Lane is an *actor* — the org unit whose
+person performs the task — so it maps cleanly onto the `User` column. It does **not** map onto
+`Modul`, which is a grouping of system capability. The two often have similar names, which is
+exactly why this gets conflated: on the bolt-manufacturing BPMN the nine Lanes (Penjualan,
+Teknik, Perencanaan, Pembelian, Gudang, Produksi, Kualitas, Logistik, Keuangan) were copied
+straight into `Modul`, producing an org chart rather than a module architecture. Derive `Modul`
+independently, from a recognised ERP module set (SAP's SD/MM/PP/QM/FI or Odoo's equivalents),
+and let several Lanes collapse into one module where they share a capability — Teknik +
+Perencanaan + Produksi are all Manufacturing; Gudang + Logistik are both Inventory.
+
+Two consequences make this worth getting right rather than fixing later: `Modul` becomes the
+**module grouping on the ERD** and the unit for **one class diagram per module**. Too-granular
+modules yield a set of two-class diagrams that `class-diagram-conventions.md` explicitly says
+shouldn't be drawn at all.
+
+Don't create a module that no UC lands in, even when the source narrative mentions the function
+(machine/tooling maintenance was named in the bolt narrative but no User task touched it) — an
+empty module is a promise the workbook can't keep.
+
 Lands on sheet **UC BPMN**.
 
 ## Route 2 — FR → UC
@@ -222,7 +241,22 @@ Output of Routes 2 and 3. Same columns as "UC BPMN". Holds use cases that didn't
 
 ## Sheet "Entities"
 
-Columns: `Entity yang dibutuhkan`, `Owner`, `ERD` (bool). Deduped list pulled from the `Entity/Objek Terkait` column on both "UC BPMN" and "UC Non-BPMN".
+Columns: `Entity yang dibutuhkan`, `Modul`, `Owner`, `ERD` (bool). Deduped list pulled from the `Entity/Objek Terkait` column on both "UC BPMN" and "UC Non-BPMN".
+
+**`Modul` is the single owning module — the one module allowed to write the entity.** Exactly
+one, never a list, even though several modules typically read it. Assign it to whichever
+module's UC *creates* the record, not to whichever touches it most: `Lot Produk` is referenced
+by 15 UCs across three modules but is created by Manufacturing, so Manufacturing owns it.
+`Owner` stays the human data steward (a role, e.g. `Staf Kualitas`) — the accountability answer,
+not the architectural one; the two columns deliberately answer different questions.
+
+Single ownership is what makes the schema decomposable later. It is not a commitment to
+microservices or to any other architecture — it just keeps that option open at no cost, whereas
+an entity with two writing modules has to be untangled before any split is possible.
+
+The entities read by the *most* modules are the ones worth watching: they mark where a module
+boundary would actually have to be cut, and a count that keeps climbing is the early signal that
+a boundary is drawn in the wrong place.
 
 In Google Sheets, kept live via a formula unioning both ranges. `UNIQUE`/`ARRAYFORMULA`/`QUERY`/`FLATTEN` are Google Sheets-only and don't port to `.xlsx` as a live formula — refresh manually or via script if working from the `.xlsx` directly.
 

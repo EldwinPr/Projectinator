@@ -103,6 +103,33 @@ nothing wrong) — see step 7 above.
   group box's edge) visually merges with that boundary line** — same failure mode as the two
   gotchas above, different cause. Route backward/loop-back connectors through the actual open
   gap *between* structural elements, not hugging near a container's own edge.
+- **A crossing that can't be designed away gets a line jump, not a bare intersection.** Two
+  connectors meeting at a plain right-angle intersection are ambiguous — a reader can't tell
+  whether the lines cross or join, and on a dense diagram that reads as a wrong relationship.
+  Add `jumpStyle=arc;` to the edge that should hop over the other; draw.io then renders a small
+  semicircular hop at every point where that edge crosses another. Rules that make it work:
+  - **Declare the jump on one consistent side of each crossing pair**, not both — two edges that
+    each declare `jumpStyle` will both hop at the same intersection and produce a double arc.
+    Pick an orientation and keep it (e.g. the horizontal runner hops over the verticals).
+  - It is a **last resort, not a substitute for layout.** Structural fixes come first: reposition
+    the endpoints so the connectors don't cross at all (see the BPMN x-alignment technique in
+    `bpmn-conventions.md`). Reach for a jump only where the crossing is topologically forced —
+    which on a module-grouped ERD is common, since cross-module relationships have to traverse
+    the same gaps.
+  - **Line jumps do not fix overlap; spacing does.** A jump makes a *crossing* legible. Two
+    connectors running *parallel* too close together still merge into what looks like one line,
+    and no jump style helps. Give each long run its own corridor.
+
+- **Long cross-group connectors belong in dedicated parallel corridors.** When several
+  connectors have to traverse the same empty band, don't let the router pick each one's path
+  independently — assign each its own horizontal corridor and its own vertical drop lane, via
+  explicit waypoints. Worked example, the bolt-manufacturing ERD's four bottom-spanning
+  relationships: horizontal corridors at y = 930 / 950 / 980 / 1020 and vertical lanes at
+  x = 340 / 360 / 380 / 410 — roughly 20–40px apart, enough to read as separate lines at 1×
+  export. Compare with the 30–40px figure in the parallel-jog gotcha above: that one concerns
+  two *jogs* squeezed into one narrow corridor, where less separation merges them; a set of long
+  straight runs in open space tolerates the tighter 20px end of the range.
+
 - **Never use XML comments (`<!-- -->`) in `.drawio` output** — already called out in the
   `drawio` skill, repeated here because it's easy to reach for out of habit; they can cause parse
   errors and serve no purpose in diagram XML this project ships.
