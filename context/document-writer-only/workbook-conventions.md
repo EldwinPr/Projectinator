@@ -264,7 +264,7 @@ In Google Sheets, kept live via a formula unioning both ranges. `UNIQUE`/`ARRAYF
 
 ## Out of scope for this workbook
 
-UC-to-code traceability lives in `context/index/map.yaml`, not in this workbook. This workbook stays scoped to requirements and entities only.
+UC-to-code traceability lives in `context/index/map.md`, not in this workbook. This workbook stays scoped to requirements and entities only.
 
 ## Editing `docs/workbook.xlsx` programmatically
 

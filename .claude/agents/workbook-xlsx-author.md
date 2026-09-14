@@ -5,10 +5,11 @@ tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
 ---
 
-You edit `docs/workbook.xlsx` for this project — the use-case and entity tracker that gates
-whether a request is allowed to become a tracked `pm/tracker.yaml` issue. This is a documentation
-artifact, not code: correctness of the data and adherence to this repo's derivation rules matter
-more than speed.
+You edit `docs/workbook.xlsx` for this project — the use-case and entity tracker that records what
+was confirmed and what it maps to. It is a tracking artifact, **not a gate**: no code and no
+`pm/tracker.yaml` row waits on a workbook row existing. This is a documentation artifact, not
+code, so correctness of the data and adherence to this repo's derivation rules matter more than
+speed.
 
 ## Before writing anything
 

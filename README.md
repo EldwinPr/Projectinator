@@ -1,192 +1,184 @@
 # bpmn-to-erp
 
-A documentation pipeline for taking an ERP project from **client elicitation → BPMN →
-use cases → data/behaviour models**, with enough process scaffolding around it that the
-trail from "a stakeholder said this" to "this artifact exists" stays reconstructable
-months later.
+A working setup for building an ERP — **context management, an index agents can
+navigate, and lightweight project state** — with a documentation layer attached
+for the parts of an ERP that have to be traceable to something a stakeholder
+actually said.
 
-The repo is currently **Phase 1: documentation only**. No stack has been chosen and no
-application code exists. Everything here is either a convention doc, a worked example,
-or project-management state.
+Code is the deliverable. The artifacts exist to settle questions faster than
+prose can and to keep the trail from "a stakeholder said this" to "this exists"
+reconstructable months later. **Only the ERD is expected to stay current**;
+BPMN, class, state and component diagrams are optional, drawn when they earn
+their keep.
 
-## What this repo actually contains
+> **This README describes what exists and why. It does not state rules.** Each
+> rule has exactly one owner, and pointing at that owner rather than summarising
+> it is the point — three copies of a rule is three copies to update, and in
+> practice only the one you happened to be reading gets updated.
+
+## What this repo contains
 
 | Path | What it is |
 |---|---|
-| `CLAUDE.md` | The procedure manual — hard gates, forbidden patterns, the issue-close checklist. |
-| `context/RULES.md` | Session entry point: what to read first, in what order. |
-| `context/general-rules.md` | Cross-cutting conventions (naming, planning gate, definition of done). |
-| `context/document-writer-only/` | Per-artifact conventions: BPMN, ERD, class, state, workbook, plus the cross-cutting draw.io guide. |
-| `context/document-writer-only/examples/` | Verified worked examples + `elements.drawio`, the living shape palette. |
-| `context/guide/` | Component-diagram conventions; cross-model review workflow. |
-| `context/index/` | `map.yaml` (UC/FEAT → code) and `decisions.md` (durable architectural decisions). |
+| `CLAUDE.md` | The procedure manual — what to do, and the few rules that must not be missed. |
+| `AGENTS.md` | A pointer to `CLAUDE.md`, for runtimes that look for that filename. Deliberately not a second manual. |
+| `opencode.json` / `.opencode/` | Cross-model setup: loads `CLAUDE.md` as the manual and mirrors the subagents, so a reviewer model starts with project context instead of blind. See `context/guide/cross-model-review.md`. |
+| `context/RULES.md` | Session entry point: what to read first, in what order, what deliberately stays out. |
+| `context/general-rules.md` | **Owner of the shared working rules** — sources of truth, work classification, planning gate, working discipline, definition of done. |
+| `context/gotchas.md` | The learning buffer. Raw, unverified observations, appended during work. Never read as guidance, never deleted. |
+| `context/distill.md` | The pass that compiles the buffer into the files that own each fact, then empties it. |
+| `context/index/` | `README.md` (the three-file contract), `inventory.md` (generated, grep it), `vocabulary.md` (business term → our names), `map.md` (ownership, prose), `decisions.md` + `decisions/`. |
+| `context/coder-only/` | Implementation conventions. Its README says what to create once a stack is chosen. |
+| `context/document-writer-only/` | Per-artifact conventions: ERD first, then BPMN, class, state, workbook, plus the cross-cutting draw.io guide. |
+| `context/document-writer-only/examples/` | Verified worked examples, and `elements.drawio` — the living shape palette. |
+| `context/guide/` | Component-diagram conventions; the cross-model review workflow. |
 | `context/files/` | Published third-party specs the conventions are distilled from (OMG BPMN, UML). |
-| `input/` | Raw client source material, one folder per intake event. The substrate everything else derives from. |
-| `docs/` | The real client deliverables: `workbook.xlsx`, `requests.md`, `nfr.md`, `statuses.md`, `rbac-entities.csv`. |
-| `pm/` | Project state: `tracker.yaml` (the board), `active.json` (current issue), `log.md` (append-only history). |
-| `.claude/agents/` | Specialist subagents for the artifacts that have repeatable, error-prone rules. |
+| `input/` | Raw client source material, one folder per intake event. Append-only. |
+| `docs/` | Client deliverables: `workbook.xlsx`, `requests.md`, `fr-nfr.md`, `statuses.md`, `rbac-entities.csv`. |
+| `pm/` | Work state: `tracker.yaml` (open only), `archive.yaml` (closed), `issues/{slug}/` (the capsule of anything open), `log.md`, `todo.md`, `active.json`. |
+| `.claude/agents/` | Specialist subagents for the error-prone artifacts, plus the distill agent. |
 | `.claude/skills/` | Tooling skills (`drawio`, `xlsx`, `doc-coauthoring`). |
 
-## The pipeline
+## How work actually flows
 
 ```
 input/  ── raw client material: photos, scans, exports, emails, transcripts
       │        (append-only; never worked from directly)
       │
-      ├─→ as-is BPMN ──→ gap discussion with client ──→ to-be BPMN (confirmed)
-      │                                                        │
-      │                                                        ▼
-      │                                            docs/workbook.xlsx "UC BPMN"
-docs/requests.md ──(promotion, once confirmed)──→   docs/workbook.xlsx "UC Non-BPMN"
-                                                             │
-                                                             ▼
-                                                    "Entities" sheet (deduped)
-                                                             │
-                                                             ▼
-                                              ERD · class · state · component diagrams
-                                                             │
-                                                             ▼
-                                        pm/tracker.yaml issue → plan.md → work → close
+      ▼
+docs/requests.md ── extracted and classified, still unconfirmed
+      │
+      │  confirmed with the user
+      ▼
+pm/tracker.yaml row  ──(anything substantial)──→  pm/issues/{slug}/plan.md
+      │                                                    │
+      │←───────────────────── contained fix ───────────────┘
+      ▼
+   build it  ──→  verify  ──→  pm/archive.yaml + pm/log.md
+      │
+      ├─→ ERD updated when the schema moved          (expected)
+      ├─→ context/ updated when durable truth moved  (expected)
+      └─→ a BPMN / class / state diagram             (only when it helps)
 ```
+
+Nothing in that path blocks on a diagram or a workbook row existing. Where one
+already exists for the behaviour, keeping it current is part of the work.
 
 ### The input layer
 
-Requirements arrive in one of three already-formalised shapes — a **BPMN** process model, a
-written **FR** list, or a raw **stakeholder request**. `input/` sits underneath all three: it is
-the unclassified material they were formalised *from*, and it exists to make one guarantee hold —
-**every downstream artifact can name the thing that justified it.**
+`input/` is what everything else derives from, and it exists to make one
+guarantee hold: **every downstream artifact can name the thing that justified
+it.** Without it, the only surviving record of why a rule exists is the rule
+itself — a spec says the hold is ten minutes, nobody can find who said ten, and
+a year later it gets re-decided from memory.
 
-Without it, the first arrow above has no artifact behind it, and the only surviving record of why
-a rule exists is the rule itself. The failure is quiet: a diagram says the seat hold is ten
-minutes, nobody can find who said ten, and a year later it gets re-decided from memory.
+One folder per intake event, each carrying a `notes.md` whose `## Extracted`
+list doubles as the queue. Full rules: [`input/README.md`](input/README.md).
+Client material and published standards stay apart on provenance —
+`context/files/` is what a standards body published, `input/` is what the client
+gave us.
 
-The discipline that keeps it from becoming a junk drawer is small:
+## The self-learning loop
 
-- One folder per **intake event** (`input/YYYY-MM-DD-<slug>/`), grouped by when and from whom —
-  never by file type.
-- Every folder carries a `notes.md` recording source, date, contents, and what was extracted.
-  Its `## Extracted` list doubles as the queue: **empty means not yet mined.**
-- Append-only. A correction is a new intake event that supersedes the old one — the layer records
-  what was actually said, including what later turned out to be wrong.
-- Never worked from directly; material is extracted into `docs/requests.md` (or a BPMN, or an FR
-  list) and classified there first.
+```
+context/gotchas.md  →  distill pass  →  context/ (compiled truth)
+```
 
-Client material and published standards are kept apart on provenance: `input/` is what the client
-gave us, `context/files/` is what a standards body published (the OMG BPMN and UML specs the
-conventions are distilled from). Full rules in `input/README.md` and `context/files/README.md`.
+A lesson learned mid-task is **appended to the buffer**, cheaply, without
+stopping to find its proper home. Later, a manually-triggered pass verifies each
+entry against the current repository, promotes what survives into the file that
+owns the subject, drops what has gone stale, empties the buffer, and opens a PR
+with an audit table accounting for every entry.
 
-### BPMN levels
+The buffer is deliberately **not** read at session start: unverified notes
+carrying the authority of `context/` are worse than no notes. Closing an issue
+asks "what did this teach us, and where does it go?" — and "nothing" is a valid
+answer, as long as it is answered.
 
-This project uses a deliberate 3-level simplification (documented and cited in
-`context/document-writer-only/bpmn-conventions.md`):
+## The index
 
-- **Level 1** — landscape + value chain in one diagram: one Pool, lanes for
-  Managerial / Main / Supporting, every box a collapsed sub-process, no connecting arrows.
-- **Level 2** — one diagram per Level-1 box, decomposing that box only.
-- **Level 3+** — full operational BPMN. Same rule recursing: one diagram decomposes exactly
-  one parent box, never several.
+Three files, split by **what can be generated**
+([`context/index/README.md`](context/index/README.md)):
 
-Say **"Level"**, not "Tier". Don't decompose a box that isn't complex enough to earn it.
+| Question | File | Maintained |
+|---|---|---|
+| Where does X live, and what does it touch? | `inventory.md` | Generated |
+| The ticket says "{business term}" — what is that here? | `vocabulary.md` | By hand |
+| Who owns this, and why is it like that? | `map.md` | By hand |
 
-### Use case derivation
+A scanner can produce the inventory and nothing else — it cannot know that users
+call it one thing and the code another, or why a boundary sits where it does.
+Equally, a hand-maintained inventory is stale within a month and nobody notices,
+because nobody reads an inventory end to end. So the inventory is generated, one
+line per item, designed so that a single grep answers *where it lives* and *what
+calls it* at once — and its generator **refuses** rather than emitting a partial
+result when it meets something unclassified.
 
-One workbook row per **User task** — the point where a human looks at a screen. Service /
-Business Rule / Send / Receive tasks that fire automatically off that user action fold into
-the same UC's description as sub-steps. Manual tasks (no system involvement at all) never
-become use cases. Full rule and the worked correction that produced it:
-`context/document-writer-only/workbook-conventions.md`.
+## Work tracking
 
-## Hard gates
+`pm/` is the single work-tracking system. Each file has one job; no fact is
+duplicated across them.
 
-These are non-negotiable and live in `CLAUDE.md`:
+| File | Holds |
+|---|---|
+| `pm/tracker.yaml` | **Open work only** |
+| `pm/archive.yaml` | Every closed issue, moved verbatim on close |
+| `pm/issues/{slug}/plan.md` | The capsule of an open issue — deleted on close, recoverable from git by slug |
+| `pm/log.md` | Narrative history, newest first |
+| `pm/todo.md` | Our own unconfirmed ideas |
+| `pm/active.json` | The current primary issue |
 
-- No work starts before a `plan.md` exists for the active issue **and** the user has confirmed it.
-- A plan's scope *is* its sequence diagram — nothing outside it is in scope, nothing in it gets
-  silently skipped.
-- Every use case has an owning workbook row before it becomes a tracked issue.
-- `docs/requests.md` is append-only capture, never a task queue — promote to the workbook first.
-- `input/` is never worked from directly — extract and classify into `requests.md` (or a BPMN, or
-  an FR list) first. Same rule, one layer earlier.
-- A cited source must exist. If a conventions file or diagram cites a source document, that
-  document — or a stub naming it and where it lives — is present in `input/` or `context/files/`.
-- Preflight before implementation: declared dependencies Done in `pm/tracker.yaml`, no scope
-  overlap with another active issue.
+A row in the tracker, a capsule under `pm/issues/`, and (if the project uses an
+external tracker) an open issue there are three views of one set. The exception
+is `status: open` — raw backlog with no plan and no capsule. Statuses, fields
+and the close sequence live in `pm/tracker.yaml`'s own header and in
+[`general-rules.md`](context/general-rules.md).
+
+**Plans scale to the work.** A contained fix needs a row and can be done; work
+that changes observable behaviour, touches persistence, or spans components gets
+a confirmed plan first.
 
 ## Working on a `.drawio` file
 
-The mandatory loop, every time, no exceptions (`context/document-writer-only/drawio-general-guide.md`):
+There is a mandatory loop — validate, check for XML comments, export, and
+**actually look at the render** — because every non-trivial diagram built with
+these conventions has needed at least one fix that was invisible from reading
+the XML. The loop is in [`CLAUDE.md`](CLAUDE.md); the mechanics are in
+[`drawio-general-guide.md`](context/document-writer-only/drawio-general-guide.md).
 
-1. Author/edit the XML.
-2. Validate well-formedness:
-   `python -c "import xml.dom.minidom as m; m.parse('PATH')"`
-3. `grep -c '<!--' file.drawio` — XML comments are forbidden here and validation won't catch them.
-4. Export and **actually look at the render**:
-   `"C:\Program Files\draw.io\draw.io.exe" -x -f png -o out.png file.drawio`
-5. Crop tight on any crowded region and re-inspect.
-6. Fix and re-export until clean; delete throwaway PNGs.
-
-Every non-trivial diagram built here so far needed at least one fix that was invisible from
-reading the XML. Style strings come from `examples/elements.drawio` — this project's installed
-shape library has repeatedly diverged from spec-plausible attribute names (gateway type is
-`gwType=`, not `symbol=exclusiveGw`), and guessing has produced blank or wrong renders every
-single time it was tried instead of checked.
+Style strings come from `examples/elements.drawio`. The installed shape library
+has repeatedly diverged from spec-plausible attribute names (gateway type is
+`gwType=`, not `symbol=exclusiveGw`), and guessing has produced blank or wrong
+renders every single time it was tried instead of checked.
 
 ## Subagents
 
-Delegate rather than hand-authoring; each one already knows which conventions to load.
+Delegate rather than hand-authoring; each already knows which conventions to
+load.
 
 | Agent | Use for |
 |---|---|
+| `diagram-drawio-author` | ERD, class, state, component |
 | `bpmn-drawio-author` | BPMN diagrams |
-| `diagram-drawio-author` | Every other `.drawio`: ERD, class, state, component |
-| `workbook-xlsx-author` | Deriving UCs, promoting requests, refreshing the Entities dedup |
+| `workbook-xlsx-author` | Use cases, promoting requests, the Entities dedup |
+| `distill` | The distill pass over the learning buffer |
 
 ## Environment notes
 
-- **draw.io Desktop**: `C:\Program Files\draw.io\draw.io.exe`. CLI export prints
-  `Unable to move the cache` / `Gpu Cache Creation failed` to stderr — harmless Electron noise,
-  check the output file, not the log lines.
-- **Workbook editing**: `openpyxl`. No live formulas — Google Sheets' `UNIQUE`/`ARRAYFORMULA`/
-  `QUERY`/`FLATTEN` don't survive the `.xlsx` round trip, so the Entities dedup is refreshed
-  manually or by script.
-- **`ws.max_row` goes stale across separate save/reload cycles.** This has silently clobbered
-  rows and blanked a header three separate times. Always reload and print the sheet after
-  writing; clear an oversized range and `delete_rows()` down; rewrite headers last.
-- **LibreOffice is not usable here** (`AF_UNIX` missing on this Windows Python build) — so the
-  `xlsx` skill's `recalc.py` won't run. Don't assume it's available for adjacent tooling either.
+- **draw.io Desktop** provides the CLI export. The binary is `drawio` on Linux
+  and `draw.io.exe` (under Program Files) on Windows; headless environments need
+  `xvfb-run`. It prints GPU and cache warnings to stderr on every run — check
+  the output file, not the log lines.
+- **Workbook editing** uses `openpyxl`. No live formulas: Google Sheets'
+  `UNIQUE`/`ARRAYFORMULA`/`QUERY`/`FLATTEN` do not survive the `.xlsx` round
+  trip, so the Entities dedup is refreshed manually or by script.
+- **`ws.max_row` goes stale across separate save/reload cycles.** This has
+  silently clobbered rows and blanked a header three separate times. Reload and
+  print the sheet after writing; clear an oversized range and `delete_rows()`
+  down; rewrite headers last.
+- **LibreOffice may be unavailable**, which disables the `xlsx` skill's
+  `recalc.py`. Do not assume adjacent tooling can call it either.
 
-## Conventions worth knowing before you touch anything
-
-- **Domain language follows the client.** Terms from elicitation notes, the workbook, and the
-  BPMN diagrams keep their exact spelling downstream — no silent translation or normalization
-  mid-pipeline. (The workbook's column headers are Indonesian for this reason.)
-- **Contested terminology gets borrowed, not invented.** Where sources disagree on a concept,
-  adopt the practitioner standard closest to our context (SAP/Signavio for process architecture)
-  and cite it in the relevant conventions file — defensible to a reviewer beats internally tidy.
-- **Lessons learned go straight into the relevant conventions doc** as part of finishing the task
-  that surfaced them. There's no staging file; a previous `gotchas.md` was emptied because every
-  entry ended up duplicated into a conventions doc anyway.
-- **`pm/` records what happened; `context/` records what is true.** Durable facts belong in
-  `context/`, not buried in an issue's `plan.md`.
-- **Demo vs. real work.** Framework tests and demos live entirely under
-  `context/document-writer-only/examples/` and never touch `docs/workbook.xlsx`,
-  `docs/requests.md`, or `pm/`. If it's unclear which one a request is, ask first.
-
-## Closing an issue
-
-1. Reconcile the sequence diagram against what was actually built (as-built pass).
-2. `context/index/map.yaml` — add the UC/FEAT → code entry.
-3. `context/index/decisions.md` — record anything durable decided along the way.
-4. `pm/tracker.yaml` — status Done + one-line summary.
-5. `pm/log.md` — append a dated entry, tagged `[STATUS]`/`[DECISION]`/`[DISCOVERY]`/`[TODO]`.
-6. `pm/active.json` — point at the next issue, or clear it.
-
-Skipping to step 6 is what makes old work unreconstructable. Don't.
-
-## Current state
-
-The conventions layer and the agent/skill tooling are built and validated against worked
-examples (a retail store modeled Level 1→3, a food-stand collaboration diagram, a restaurant
-BPMN + ERD + class diagrams + workbook). The client-facing artifacts are still scaffolding:
-`docs/workbook.xlsx` holds headers only, and `pm/tracker.yaml`, `pm/active.json`, `pm/log.md`,
-`context/index/*` are empty — no real issue has been run through the pipeline yet.
+There is **no CI here**, deliberately. The checks that matter — render the
+diagram and look at it, regenerate the index, run the suite — are steps in the
+definition of done, not a pipeline someone else maintains.

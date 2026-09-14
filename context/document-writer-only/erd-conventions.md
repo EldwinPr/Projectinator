@@ -1,6 +1,6 @@
 # ERD Conventions
 
-Entity-relationship diagram conventions, system-level. Drafted during Phase 1, refined as real migrations land. There's no single canonical ERD standard (notation varies Chen vs. Crow's Foot) — no spec to extract from, this file is written directly.
+Entity-relationship diagram conventions, system-level. Drafted as soon as entities are known, refined as real migrations land. **This is the one diagram the project is expected to keep current** — every other diagram type here is optional. There's no single canonical ERD standard (notation varies Chen vs. Crow's Foot) — no spec to extract from, this file is written directly.
 
 ## Notation: Crow's Foot
 
@@ -31,7 +31,7 @@ The model should mirror what the ORM can express cleanly — one-to-many, many-t
 
 ## Naming stays code-legal
 
-Table names and column names on this diagram follow whatever `coding-conventions/*.md` already commits to for this project (ULID primary keys, no DB-level enums, soft-delete columns, naming case convention, etc.) — this diagram should never show a design that the coding conventions would then forbid once it's turned into a real migration. If the ERD and a coding-conventions file disagree, fix the ERD; the coding conventions are the constraint, not a suggestion to negotiate around at diagram time.
+Table names and column names on this diagram follow whatever `context/coder-only/*.md` already commits to for this project (key strategy, enums versus strings, soft-delete columns, naming case, etc.) — this diagram should never show a design that those conventions would then forbid once it is turned into a real migration. Before a stack is chosen there is nothing to comply with yet, so record the assumptions the ERD is making and reconcile once it is. If the ERD and an implementation convention disagree, fix the ERD; the implementation conventions are the constraint, not a suggestion to negotiate around at diagram time.
 
 ## Grouping entities by Module
 
@@ -42,6 +42,30 @@ Visually cluster entities by their owning workbook `Modul` (`document-writer-onl
 ## PK/FK-only draft pass
 
 For a new or fast-growing ERD, it's fine to draft with **only the PK row and any FK rows** per table (name, no other business columns) before deciding real attributes — this validates the relationship/cardinality model cheaply and matches the workbook's Entities sheet, which also doesn't carry attribute-level detail yet. Add business columns once they're actually known; don't block the relationship diagram on knowing every field first.
+
+## Before hand-building a large one, ask who will open it
+
+Size is a **rot mechanism**, not merely an inconvenience. A whole-schema drawing
+has no regular reader, so it has nobody to catch it when it drifts — and it
+drifts fastest exactly when the project is moving. In the project this framework
+came from, a hand-built ERD carrying 58 entities against a 66-table schema went
+untouched for a month and nobody noticed, because opening it was never part of
+anyone's work.
+
+Generating it is the fix, but only under two conditions: **the generator can
+refuse, and somebody runs it.** A generator that emits a partial diagram when it
+meets something it does not understand produces a drawing that is quietly wrong,
+which is worse than one that is obviously old. Make it exit non-zero on an
+unassigned entity or an uncategorised reference, take counts from the source of
+truth rather than counting them off the diagram, and regenerate it as part of
+the change that moved the schema — the same contract the code index has in
+`context/index/README.md`.
+
+If generation is not on the table, **draw per-module slices small enough to be
+read** — those get opened, so those get corrected. The same reasoning bounds the
+class diagram (`class-diagram-conventions.md` already caps it per module) and is
+why an inventory of hundreds of items belongs in a generated list to grep, never
+in a picture.
 
 ## Lifecycle
 

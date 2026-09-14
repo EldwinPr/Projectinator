@@ -56,9 +56,9 @@ Concretely: before drawing an arrow from status A to status B, there must be a s
 
 Critically, **not every pair of valid statuses has a legal transition between them.** `statuses.md` alone doesn't tell you that; only the diagram (and the business rule behind each arrow) does. For example, an invoice might have valid statuses `draft`, `sent`, `paid`, `void` — but "paid → draft" is very unlikely to be a real transition even though both are valid values. Don't assume a transition exists just because both endpoints are legal values; it still needs its own confirmed business rule per the hard rule above.
 
-## Confirmed during Phase 1
+## Confirmed during elicitation
 
-Same confirmation gate as the BPMN to-be diagram (see [`bpmn-conventions.md`](bpmn-conventions.md#as-is-vs-to-be)): don't diagram a transition that hasn't actually been confirmed with the client. If two elicitation sessions describe the same entity's lifecycle differently (e.g. one stakeholder says cancellation is only possible from `draft`, another says it's possible from `submitted` too), don't quietly pick one — flag the contradiction and get it resolved before it goes on the diagram. State diagrams for Phase 1 elicitation are inherently to-be-flavored (there usually isn't a meaningful "as-is state diagram" for a process that previously ran on paper/spreadsheets), so treat every transition as needing the same sign-off a to-be BPMN transition would need.
+Same confirmation gate as the BPMN to-be diagram (see [`bpmn-conventions.md`](bpmn-conventions.md#as-is-vs-to-be)): don't diagram a transition that hasn't actually been confirmed with the client. If two elicitation sessions describe the same entity's lifecycle differently (e.g. one stakeholder says cancellation is only possible from `draft`, another says it's possible from `submitted` too), don't quietly pick one — flag the contradiction and get it resolved before it goes on the diagram. State diagrams drawn during elicitation are inherently to-be-flavored (there usually isn't a meaningful "as-is state diagram" for a process that previously ran on paper/spreadsheets), so treat every transition as needing the same sign-off a to-be BPMN transition would need.
 
 ## draw.io shapes
 

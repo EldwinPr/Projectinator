@@ -8,7 +8,7 @@ This diagram doesn't assume a specific architecture — not a layered Model/Serv
 
 **This is a default, not a ban.** The warning above exists to stop *unprompted* defaulting to BCE/EBC or any other named pattern — if the user explicitly asks for a specific architecture (confirmed on the restaurant demo: "use a simple entity boundary controller"), use it. See [Entity-Boundary-Controller, when chosen](#entity-boundary-controller-when-chosen) below for how to structure it.
 
-Once this project's stack/architecture is settled, record the *actual* recurring shapes (a service layer, a repository, whatever the real codebase does) in `coding-conventions/` if a stable pattern emerges — this file stays about the diagramming convention, not about prescribing an architecture.
+Once this project's stack/architecture is settled, record the *actual* recurring shapes (a service layer, a repository, whatever the real codebase does) in `context/coder-only/` if a stable pattern emerges — this file stays about the diagramming convention, not about prescribing an architecture.
 
 ## Entity-Boundary-Controller, when chosen
 
