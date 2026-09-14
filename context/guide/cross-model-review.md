@@ -1,46 +1,100 @@
-# Menjalankan opencode (GPT via CLI) — stateless & obrolan
+# Cross-model review with `opencode`
 
-Instruksi generik/reusable untuk menjalankan `opencode` sebagai reviewer atau sparring
-partner lintas-model dari sesi Claude Code manapun. Bukan spesifik proyek ini — bisa
-ditempel ke proyek lain. Kalau proyek ini nantinya punya aturan spesifik soal kapan/kenapa
-dipakai (kriteria tiket tertentu, dsb.), taruh di file terpisah dan rujuk dari sini —
-jangan asumsikan aturan spesifik-proyek itu sudah terdefinisi di suatu tempat sampai file
-itu benar-benar dibuat.
+Generic, reusable instructions for running `opencode` as a reviewer or sparring
+partner from any Claude Code session. Nothing here is specific to this project —
+it can be copied to another repo as-is. If a project grows its own rules about
+*when* to reach for this (ticket criteria, required sign-off), put those in a
+separate file and link to it from here; do not assume such rules exist until the
+file does.
 
-## Prinsip dasar
+The point is a model with **different blind spots**, not a second opinion from
+the same mind.
 
-- **Siapa yang menjalankan:** sesi utama Claude Code (yang punya akses Bash), bukan
-  subagent read-only. Jangan tambahkan tool Bash ke subagent lain demi mengakomodasi ini.
-- **Selalu verifikasi klaim opencode ke sumber asli** sebelum menerima atau menerapkannya.
-  Model lain bisa salah/mengarang sama seperti model manapun — "opencode bilang X" bukan
-  bukti bahwa X benar.
-- **Jangan `Read` file JSON mentah hasil opencode ke context sendiri.** Outputnya bisa
-  puluhan KB karena isi file yang dia baca ikut ter-echo di event `tool_use`. Selalu
-  ekstrak lewat `grep`/`sed` — ambil `sessionID` dan `text` balasan akhir saja, buang sisanya.
-- **Kasih pointer path + rentang baris**, bukan isi file ditempel penuh ke prompt, dan
-  bukan juga "baca seluruh file" kalau section yang relevan cuma sebagian kecil.
-- **Satu sesi = satu topik.** Jangan sambung sesi lama (topik A) untuk topik baru (B).
-  Kalau perlu mencabang dari histori lama tanpa mengubah sesi asli, pakai `--fork`.
+## Principles
+
+- **Who runs it:** the main Claude Code session, which has Bash. Do not add Bash
+  to a read-only subagent to accommodate this.
+- **Verify every claim against the source before acting on it.** Another model
+  invents things exactly as readily as any model does; "opencode said X" is not
+  evidence of X. This is the rule that makes the whole technique safe, and it is
+  the first one abandoned under time pressure.
+- **Never `Read` the raw JSONL into your own context.** Every file the other
+  model reads is echoed back inside its `tool_use` events. Measured on one real
+  session: the turn where it read two files produced **46 KB**; the next turn in
+  the same conversation, which read nothing, produced **1.8 KB**. Extract the
+  reply, discard the rest.
+- **Give path pointers with line ranges**, not pasted file contents — and not
+  "read the whole file" when one section is relevant.
+- **One session, one topic.** Do not continue a session about topic A to discuss
+  B. To branch from an existing history without disturbing it, use `--fork`.
+- **The reviewer is not blind, and this surprises people.** See below.
+
+## What the other model already knows before you say anything
+
+`opencode` auto-loads project context at startup: the manual named in
+`opencode.json`'s `instructions` array, every skill under the configured skill
+paths, and the instructions of each enabled MCP server. Asked to list what it
+had loaded, the model correctly named the project manual, five skills and two
+MCP servers — before reading a single file. That start-up context measured
+**~22k input tokens**.
+
+Two consequences:
+
+- **It inherits your framing.** An "independent" audit that starts from your own
+  manual is less independent than it looks. When you want a genuinely outside
+  read, say so explicitly in the prompt ("ignore the project manual's framing;
+  judge this against X") or point it at a different baseline.
+- **If the repo's manual is not the filename `opencode.json` loads, the reviewer
+  starts blind.** Check the `instructions` array when setting this up in a new
+  repo. A repo whose manual is `CLAUDE.md` needs that name listed, or the model
+  begins with no project context at all.
 
 ## Setup
 
-Perintah dasar:
-
 ```bash
-opencode run "<pesan>" --agent plan -m openai/gpt-5.6-sol --format json --title "<nama-sesi>"
+opencode run "<message>" --agent plan -m <provider>/<model> --format json --title "<session-name>"
 ```
 
-- `--agent plan` = read-only (tidak bisa edit file). Pakai `--agent build` HANYA kalau
-  eksplisit diminta untuk membuat/mengubah file.
-- `--format json` menghasilkan output JSONL — jangan pernah `Read` mentah, selalu ekstrak
-  (lihat bagian Ekstraksi di bawah).
-- `--title` beri nama deskriptif per topik (mis. `sparring-hardware-justifikasi`,
-  `audit-final-polish`) supaya mudah ditelusuri kalau perlu dilanjutkan nanti.
-- `-m openai/gpt-5.6-sol` bisa diganti model lain yang tersedia di `opencode`; tujuannya
-  memang model DIFFERENT dari Claude supaya blind spot-nya berbeda.
-- `--variant high` bisa ditambahkan untuk reasoning effort lebih tinggi pada topik berat.
+- `--agent plan` is **read-only, enforced by the runtime** — not a promise the
+  model makes. Asked directly to create a file, it answered "I can't create
+  files while plan mode is active" and returned a plan instead; no file was
+  written. Keep "do not edit any file" in the prompt as belt-and-braces, but the
+  flag is the actual mechanism. Use `--agent build` ONLY when the task really is
+  to change files.
+- `--format json` emits JSONL. Never read it raw — extract (below).
+- `--title` names the session. This is the handle you recover it by later, so
+  make it descriptive and unique per topic (`spar-cache-strategy`,
+  `audit-migration-rollback`).
+- `-m` takes a model id **exactly as `opencode models` prints it**. Copy it from
+  there; see the error section for why a typo is expensive to diagnose.
+- `--variant high` raises reasoning effort where the model supports it.
+- `--pure` runs without external plugins, if you need a reproducible baseline.
 
-Ekstraksi `sessionID` dan teks balasan dari output JSONL (jangan `Read` filenya):
+Measured envelope on a fast model (`deepseek-v4.1-flash`): **13–31 s per turn**,
+fractions of a cent. A fresh session pays for the full startup context; a
+continuation reads it from cache and costs roughly a fifth as much. Cost is not
+a reason to avoid this, but starting a new session for every question is waste.
+
+## Extracting the reply
+
+Use `jq` when it is available — it unescapes properly:
+
+```bash
+# the reply text (one text part per reply; do NOT pipe to `tail -1`,
+# which truncates a multi-line answer to its last line)
+jq -r 'select(.part.type=="text") | .part.text' out.jsonl
+
+# the session id, for continuing
+jq -r 'select(.sessionID) | .sessionID' out.jsonl | head -1
+
+# what it cost
+jq -r 'select(.part.tokens) | "in=\(.part.tokens.input) out=\(.part.tokens.output) cost=$\(.part.cost)"' out.jsonl | tail -1
+
+# which tools it actually used — worth checking that it really read the files
+jq -r 'select(.part.tool) | .part.tool' out.jsonl | sort | uniq -c
+```
+
+Fallback without `jq`. This works, but leaves `\"` escapes in the output:
 
 ```bash
 grep -o '"sessionID":"[^"]*"' out.jsonl | head -1
@@ -52,74 +106,121 @@ grep -o '"type":"text"[^}]*"text":"[^"]*\(\\.[^"]*\)*"' out.jsonl \
   | sed 's/\\n/\n/g'
 ```
 
-## Mode 1 — Obrolan (stateful, dibatasi ronde)
+## When a run fails
 
-Dipakai untuk **tekan-uji** sesuatu sebelum difinalkan — desain, argumen, outline, draf
-awal — lewat percakapan bolak-balik. **Batasi maksimal N giliran** (default 4: opencode
-lempar kritik → counter/klarifikasi → opencode revisi → counter lagi, lalu berhenti apa
-pun hasilnya, ambil yang terbaik yang ada). Sebutkan eksplisit di prompt kalau mau beda.
+**Check the exit code.** With `> out.jsonl 2>&1` nothing reaches your terminal,
+so a failed run looks exactly like a successful one until you extract an empty
+reply.
 
-Pola yang biasanya paling bernilai: **ronde 1** opencode melempar kritik awal (sering
-generik/prinsip), **ronde 2** setelah diberi konteks/constraint yang tidak dia tahu
-(keputusan yang sudah final, batasan sumber daya, dll.), opencode memberi rekomendasi
-jauh lebih presisi dan konkret. Dua ronde sering sudah cukup konvergen.
+| Failure | Exit | What you get |
+|---|---|---|
+| Bad model id | 1 | A JSON error object saying **"Unexpected server error"** — it does *not* say "unknown model". A typo in the model name is indistinguishable from a provider outage. |
+| Bad session id | 1 | Plain ANSI-coloured text, `Error: Session not found` — **not JSON**, despite `--format json`. Parsers must tolerate this. |
+
+A failed run still creates a session, which appears in the list as
+`New session - <timestamp>`. Harmless, but do not mistake it for a real one.
+
+## Mode 1 — Conversation (stateful, bounded rounds)
+
+For **pressure-testing** something before it is finalised — a design, an
+argument, an outline, a draft. **Cap the rounds** (default 4; say so in the
+prompt if you want different). Stop at the cap and take the best available
+result rather than negotiating to consensus.
+
+The pattern is consistent enough to plan around: **round 1** produces analysis —
+often sharp but aimed at things you have already decided; **round 2**, after you
+supply the constraints it could not have known, produces something directly
+usable.
+
+A real example of that shift. Round 1 returned three failure modes in a set of
+rules, each anchored to specific line numbers. Round 2 — told which finding
+didn't matter and why, told that "add a checklist" was the wrong shape of fix
+for a solo-developer project, and asked for replacement sentences under 40 words
+— returned two paste-ready edits. Same model, same session, 18 seconds.
 
 ```bash
-# Giliran 1 — mulai sesi baru, tangkap sessionID
-opencode run "<peran reviewer/sparring partner + konteks proyek + pointer path (bukan
-tempel isi file) + hal spesifik yang mau ditekan-uji + aturan 'JANGAN edit file apa pun'
-+ batas jumlah poin jawaban>" \
-  --agent plan -m openai/gpt-5.6-sol --format json --title "sparring-<topik>" \
+# Turn 1 — new session
+opencode run "<reviewer/sparring role + project context + path pointers with line
+ranges (not pasted contents) + the specific thing to pressure-test + 'do not edit
+any file' + a cap on how many points to return>" \
+  --agent plan -m <provider>/<model> --format json --title "spar-<topic>" \
   > /tmp/round1.jsonl 2>&1
 
-# ekstrak sessionID + teks balasan (lihat perintah ekstraksi di atas)
+# extract the sessionID and the reply (see above)
 
-# Giliran 2+ — WAJIB pakai -s <sessionID> supaya nyambung ke histori sesi yang sama
-opencode run "<koreksi konteks yang dia tidak tahu + permintaan konkret/spesifik untuk
-ronde ini, bukan prinsip umum lagi>" \
-  -s <sessionID> --agent plan -m openai/gpt-5.6-sol --format json \
+# Turn 2+ — MUST pass -s <sessionID> to stay in the same history
+opencode run "<the context it could not have known + which findings you accept +
+a concrete demand for this round: the output shape, and a length cap>" \
+  -s <sessionID> --agent plan -m <provider>/<model> --format json \
   > /tmp/round2.jsonl 2>&1
 ```
 
-Setelah maksimal N giliran: rangkum jadi catatan pendek, **verifikasi tiap klaim ke
-sumber aslinya**, baru terapkan yang valid. Jangan tempel transkrip mentah ke user —
-laporkan poin-poin: apa yang disepakati, apa yang dikoreksi, apa yang masih terbuka.
+After the last round: summarise into short notes, **verify each claim against
+the source**, then apply what survives. Do not paste the raw transcript to the
+user — report what was agreed, what was corrected, and what is still open.
 
-## Mode 2 — Critique-time (stateless, sekali jalan)
+## Mode 2 — Critique (stateless, single shot)
 
-Dipakai untuk **audit independen** atas sesuatu yang sudah selesai ditulis/dibuat — bukan
-negosiasi, satu panggilan tanpa ronde lanjutan. Cocok dijalankan berdampingan/paralel
-dengan audit dari Claude sendiri (subagent critique) untuk cross-check.
+For an **independent audit** of something already written. Not a negotiation:
+one call, no follow-up. Runs well in parallel with your own critique pass for
+cross-checking.
 
 ```bash
-opencode run "<peran reviewer independen, sesi baru + SEMUA konteks yang dibutuhkan di
-SATU prompt (pointer ke sumber kebenaran/baseline, aturan/batasan yang berlaku, file+baris
-yang diaudit) + format laporan yang diminta (mis. BLOCKER/MAJOR/MINOR + lokasi + usulan
-perbaikan konkret) + instruksi 'jangan mengarang, bilang tidak yakin kalau tidak yakin'>" \
-  --agent plan -m openai/gpt-5.6-sol --format json --title "audit-<topik>" \
+opencode run "<independent-reviewer role + ALL context in ONE prompt: the
+baseline or source of truth, the rules that apply, the exact files and line
+ranges under audit + the report format you want (e.g. BLOCKER/MAJOR/MINOR, with
+location and a concrete proposed fix) + 'do not guess; say so when unsure'>" \
+  --agent plan -m <provider>/<model> --format json --title "audit-<topic>" \
   > /tmp/audit.jsonl 2>&1
 ```
 
-Karena tidak ada giliran susulan, **prompt wajib padat di awal** — beri semua konteks
-sekaligus, jangan andalkan koreksi belakangan (tidak ada ronde 2 di mode ini). Setelah
-dapat hasil: **verifikasi setiap BLOCKER/MAJOR ke sumber asli** sebelum menerapkan
-perbaikan — jangan langsung percaya, termasuk untuk temuan yang kedengarannya masuk akal.
-Kalau ada audit paralel lain (mis. subagent Claude), gabungkan temuan (dedupe manual)
-jadi satu daftar sebelum melapor ke user.
+Because there is no second round, **the prompt has to be complete up front.**
 
-## Kapan pakai yang mana
+**Ask for findings anchored to `file:line`.** It costs the model nothing and it
+is the difference between an audit you can verify in two minutes and one you
+have to re-derive. In the example above, every finding carried line numbers, and
+checking them was faster than reading the critique.
 
-| Situasi | Mode |
+Then **verify every BLOCKER/MAJOR against the source** before acting — including
+the ones that sound obviously right. If you also ran your own audit, merge and
+dedupe the findings into one list before reporting.
+
+## Which mode
+
+| Situation | Mode |
 |---|---|
-| Draf/desain/argumen belum final, mau ditekan-uji sebelum dikunci | Obrolan (Mode 1) |
-| Sesuatu sudah ditulis/dibuat, mau diaudit independen | Stateless (Mode 2) |
-| Butuh opini kedua yang genuinely independen (tidak lihat riwayat) | Stateless, sesi baru |
-| Butuh iterasi cepat dengan koreksi konteks bolak-balik | Obrolan, maks N giliran |
+| Draft, design or argument not yet final; pressure-test before locking it | Conversation (Mode 1) |
+| Something is written; you want an independent audit | Stateless (Mode 2) |
+| You want a genuinely independent opinion (no shared history) | Stateless, new session |
+| You need fast iteration with context corrections | Conversation, capped rounds |
 
-## Pengelolaan sesi
+## Managing sessions
 
-- Catat `sessionID` yang masih aktif/relevan di tempat yang persisten (mis. tracker
-  proyek), bukan cuma disebut di riwayat chat — kalau context di-compact atau sesi baru
-  mengambil alih, ID yang cuma ada di chat history bisa hilang.
-- Setelah topik selesai, tandai sesi sebagai closed di catatan proyek (tidak perlu
-  dihapus dari opencode, cukup jangan `-s` ke sesi itu lagi untuk topik lain).
+Sessions are recoverable from the CLI — you do not have to write ids down,
+though recording one next to the work it belongs to still helps:
+
+```bash
+opencode session list              # id, title, last-updated — the reason --title matters
+opencode export <sessionID>        # full session as JSON
+opencode stats                     # token usage and cost
+opencode session delete <sessionID>
+```
+
+Because `session list` is keyed by title, **a distinctive `--title` is the real
+handle**. A session called "New session - 2026-09-11T14:38:30Z" is one you will
+never find again.
+
+When a topic is finished, stop passing `-s` for it. There is no need to delete
+it unless you want the list clean.
+
+## Prompt checklist
+
+Before sending, confirm the prompt has:
+
+- [ ] The role, and explicitly that this is a critique, not a collaboration
+- [ ] Path pointers with line ranges — no pasted file bodies
+- [ ] The constraints already decided, so it does not re-litigate them
+- [ ] The output shape you want, and a cap on length or number of points
+- [ ] A request for `file:line` anchors on every finding
+- [ ] "Do not edit any file" (belt-and-braces behind `--agent plan`)
+- [ ] "Say when you are unsure rather than guessing"
