@@ -21,12 +21,13 @@ their keep.
 | Path | What it is |
 |---|---|
 | `CLAUDE.md` | The procedure manual — what to do, and the few rules that must not be missed. |
-| `AGENTS.md` | A pointer to `CLAUDE.md`, for runtimes that look for that filename. Deliberately not a second manual. |
-| `opencode.json` / `.opencode/` | Cross-model setup: loads `CLAUDE.md` as the manual and mirrors the subagents, so a reviewer model starts with project context instead of blind. See `context/guide/cross-model-review.md`. |
+| `AGENTS.md` | **Generated** from `CLAUDE.md` by `context/sync-manuals.py`, plus an explicit step-by-step operating procedure (`context/manual-opencode.md`) for runtimes that follow pointers less reliably. Never edited by hand. |
+| `opencode.json` / `.opencode/` | Cross-model setup: loads `AGENTS.md` as the manual and mirrors the subagents, so a reviewer model starts with project context instead of blind, plus a `coder` agent that implements one confirmed issue per call. See `context/guide/cross-model-review.md`. |
 | `context/RULES.md` | Session entry point: what to read first, in what order, what deliberately stays out. |
-| `context/general-rules.md` | **Owner of the shared working rules** — sources of truth, work classification, planning gate, working discipline, definition of done. |
+| `context/general-rules.md` | **Owner of the shared working rules** — sources of truth, work classification and the external tracker, planning gate, working discipline, version control, definition of done. |
 | `context/gotchas.md` | The learning buffer. Raw, unverified observations, appended during work. Never read as guidance, never deleted. |
 | `context/distill.md` | The pass that compiles the buffer into the files that own each fact, then empties it. |
+| `context/shape/` | How each business area *thinks* — intent, reasons, leanings — in the user's own quoted words. Never overrides code. |
 | `context/index/` | `README.md` (the three-file contract), `inventory.md` (generated, grep it), `vocabulary.md` (business term → our names), `map.md` (ownership, prose), `decisions.md` + `decisions/`. |
 | `context/coder-only/` | Implementation conventions. Its README says what to create once a stack is chosen. |
 | `context/document-writer-only/` | Per-artifact conventions: ERD first, then BPMN, class, state, workbook, plus the cross-cutting draw.io guide. |
@@ -37,7 +38,7 @@ their keep.
 | `docs/` | Client deliverables: `workbook.xlsx`, `requests.md`, `fr-nfr.md`, `statuses.md`, `rbac-entities.csv`. |
 | `pm/` | Work state: `tracker.yaml` (open only), `archive.yaml` (closed), `issues/{slug}/` (the capsule of anything open), `log.md`, `todo.md`, `active.json`. |
 | `.claude/agents/` | Specialist subagents for the error-prone artifacts, plus the distill agent. |
-| `.claude/skills/` | Tooling skills (`drawio`, `xlsx`, `doc-coauthoring`). |
+| `.claude/skills/` | Tooling skills (`drawio`, `xlsx`, `doc-coauthoring`), and `harvest`, which drafts shape entries from the user's own messages in the transcripts. |
 
 ## How work actually flows
 
@@ -95,6 +96,24 @@ carrying the authority of `context/` are worse than no notes. Closing an issue
 asks "what did this teach us, and where does it go?" — and "nothing" is a valid
 answer, as long as it is answered.
 
+### Shape: the knowledge the code cannot verify
+
+The loop above compiles facts about the system and verifies each against the
+repository. That shuts out what the user says the business **means**, why a
+rule exists, and which way to lean — so it used to live only in chat, and every
+new session had to be told again.
+
+```
+user's own messages  →  harvest skill  →  gotchas.md (type: shape)  →  distill  →  context/shape/{area}.md
+```
+
+Shape travels through the same buffer, but its evidence is the user's quoted,
+dated word rather than the code, and the user approves each draft before it is
+appended. A shape note biases a reading and never overrides code; a conflict is
+raised with the user. Retrieval over raw transcripts was rejected for this:
+fragments cannot tell a settled position from a reversed one. Harvest early —
+transcripts are pruned after 30 days by default.
+
 ## The index
 
 Three files, split by **what can be generated**
@@ -134,6 +153,11 @@ is `status: open` — raw backlog with no plan and no capsule. Statuses, fields
 and the close sequence live in `pm/tracker.yaml`'s own header and in
 [`general-rules.md`](context/general-rules.md).
 
+**With an external tracker, its identifier is the issue's only id** — in the
+row, the capsule directory, and the commit message. Per-type codes (`FEAT-12`,
+`FIX-7`) were tried and failed at being a stable handle: they got reused and
+collided, and duplicated `type`.
+
 **Plans scale to the work.** A contained fix needs a row and can be done; work
 that changes observable behaviour, touches persistence, or spans components gets
 a confirmed plan first.
@@ -162,6 +186,7 @@ load.
 | `bpmn-drawio-author` | BPMN diagrams |
 | `workbook-xlsx-author` | Use cases, promoting requests, the Entities dedup |
 | `distill` | The distill pass over the learning buffer |
+| `coder` (opencode only) | Implementing one confirmed issue per invocation, with an optional deferred-verification mode for batches |
 
 ## Environment notes
 

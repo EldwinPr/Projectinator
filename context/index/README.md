@@ -55,7 +55,14 @@ reference nobody categorised — forces the human decision that keeps the index
 honest. Take counts from the source of truth (the database, the compiler, the
 file system) rather than counting them off the artifact.
 
-**6. Regenerate as part of the change that made it stale**, and commit the
+**6. One definition of "module", read by every generator.** If the ERD, the
+class diagram and the inventory each group things into modules, the grouping
+lives in one place — typically the ERD generator's table-to-module list — and
+the others read it from there instead of keeping a copy. Two lists of modules
+will disagree within a month, and a reader has no way to tell which one is
+right.
+
+**7. Regenerate as part of the change that made it stale**, and commit the
 result. A stale index is worse than no index: it sends a reader confidently to a
 path that moved. There is no automated freshness check here and there is not
 meant to be one — running the generator is a line in the definition of done, not

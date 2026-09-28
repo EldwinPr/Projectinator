@@ -36,7 +36,10 @@ was in the buffer when you started must appear in exactly one of them.
   before, and the loop stopped working both times without anyone noticing.
 - **Never promote an entry you have not verified against the current
   repository.** Entries can be months stale. A wrong claim in `context/` is
-  worse than a lost one — every later session will trust it.
+  worse than a lost one — every later session will trust it. The one exception
+  is `type: shape`, verified against the **user's quoted word** instead — see
+  `context/distill.md` step 2. A shape entry with no quote and no pointer is
+  dropped.
 - **Never promote an entry describing a condition that an open `pm/` row exists
   to change.** Drop it and name the issue, or leave it until that issue closes.
 - **Never edit `pm/`**, and never touch application code. All out of scope. An

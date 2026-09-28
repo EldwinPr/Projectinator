@@ -8,9 +8,10 @@
 # The one exception is `status: open` — raw backlog with no plan and no capsule.
 # Planning one means creating the capsule and moving it out of `open`.
 #
-# A `status: open` row MAY carry an external issue: an external tracker holds
-# prose, so backlog detail can live there before a capsule exists. **What
-# separates backlog from planned work is the CAPSULE, not the external issue.**
+# When an external tracker is used, EVERY row has an external issue, `status:
+# open` included — that is where its id came from — and backlog detail lives in
+# its description until a capsule exists. **What separates backlog from planned
+# work is the CAPSULE, not the external issue.**
 #
 # On close the row moves to `pm/archive.yaml`, the narrative goes to
 # `pm/log.md`, the external issue closes, and the capsule is DELETED — git
@@ -22,17 +23,24 @@
 # not here is closed and lives in `pm/archive.yaml`.
 #
 # Fields
-#   id         — {TYPE}-{NN}, unique and never reused. Prefer a new number over
-#                recycling a closed one; `slug` is the reliable handle anyway.
+#   id         — the external tracker's identifier, if one is used: create the
+#                external issue FIRST, and the id it returns is the id here, in
+#                the slug, and in `Refs {id}` commit messages. Without one, a
+#                single project-wide sequence. Never a per-type code family
+#                (FEAT-/FIX-/TASK-): those got reused, collided across
+#                applications, and duplicated `type`. context/general-rules.md
+#                → "The external tracker" owns the rule.
 #   title      — one line, what a reader needs to recognise it by
 #   type       — feature | fix | task | doc | system | integration
 #   epic       — optional long-running track this belongs to
-#   slug       — capsule directory; the plan is always pm/issues/{slug}/plan.md
-#   external   — optional id in the project's issue tracker, if one is used
+#   slug       — capsule directory, `{id}-short-name`; the plan is always
+#                pm/issues/{slug}/plan.md
 #   source     — where this came from: an intake folder, a workbook Kode, a
 #                review, or a user request with its date
 #   depends_on — satisfied only by `status: done`, here or in pm/archive.yaml.
-#                A `dropped` dependency is NOT satisfied.
+#                A `dropped` dependency is NOT satisfied. A row's status can lag
+#                the code — grep for what it was meant to produce before
+#                treating it as unmet.
 #   blocks     — the inverse, recorded on both rows
 #   uc         — optional workbook Kode(s) this implements, once a workbook row
 #                owns the behaviour
@@ -53,12 +61,11 @@
 #
 # Shape of a row:
 #
-#   - id: UC-07
+#   - id: ABC-123
 #     title: Petugas records sample intake at the counter
 #     type: feature
-#     slug: uc-07-sample-intake
+#     slug: abc-123-sample-intake
 #     status: planning
-#     external: ABC-123
 #     source: docs/workbook.xlsx "UC BPMN" row 7
 #     depends_on: []
 #     summary: >-

@@ -4,10 +4,19 @@ These rules apply across implementation, documentation, and operations work.
 
 **This file is the single owner of the shared working rules** — sources of
 truth, work classification, the planning gate, working discipline, and the
-definition of done. The runtime manual (`CLAUDE.md`) points here in one line
-instead of restating any of it; the only rules it keeps in full are the ones
-whose violation destroys work, which must be impossible to miss even for a
-session that never follows a pointer.
+definition of done, version control. The runtime manuals (`CLAUDE.md`, and
+`AGENTS.md`, generated from it) point here in one line instead of restating any
+of it; the only rules they keep in full are the ones whose violation destroys
+work, which must be impossible to miss even for a session that never follows a
+pointer.
+
+That split is a decision about **what must be impossible to miss**, not
+deduplication. The manuals are loaded into every session unconditionally;
+`context/` files are read because `RULES.md` says so. Moving a rule out of a
+manual changes it from *guaranteed* to *conventional* — so a rule whose
+violation destroys data stays there in full, and if a rule moved here later
+shows signs of being missed, move it back deliberately rather than restating it
+in both places.
 
 **Change a rule here, not there.**
 
@@ -36,6 +45,11 @@ conflicts between them rather than silently rewriting one to match the other.
 - **`input/`** records raw client source material and is append-only.
 - Historical plans explain past decisions but do not override current code,
   schema, or confirmed specifications.
+- **`context/shape/`** records business intent per area — what things mean,
+  why, which way to lean — verified by the user's quoted word rather than by
+  the code. It biases a reading; it never overrides code, and a conflict
+  between the two is raised with the user. Its rules are in
+  `context/shape/README.md`.
 
 **Every durable rule has exactly one owner in `context/`.** Do not restate one
 in an issue file or a second conventions file — update its owner instead. When
@@ -81,13 +95,51 @@ row, and a change does not need a diagram, before it can be built. Where a
 workbook row or an ERD entity already exists for the behaviour, keep it current
 as part of the work — that is upkeep, not a gate.
 
-### The external mirror, if the project uses one
+### The external tracker, if the project uses one
 
-`pm/` is the source of truth; an external tracker is its shared mirror, and the
-two must not drift. If one is in use, name it once — here — then create the
-external issue when a capsule is created, record its id in the row's `external:`
-field, update it in the same pass as the row, and close it when the row moves to
-`pm/archive.yaml`.
+`pm/` is the source of truth for issue **state**. An external tracker, if one is
+used, is its shared mirror — and the source of issue **identity**. Name it once,
+here, and keep the two from drifting.
+
+**An issue's id is the external tracker's identifier, and nothing else.** Create
+the external issue first; the id it returns is the id in the `pm/tracker.yaml`
+row, the capsule directory (`pm/issues/{id}-short-name/`), the commit message
+(`Refs {id}`), and every reference in prose. Search the tracker before creating:
+most work already has an issue.
+
+This replaced a scheme worth not re-inventing. `pm/` once minted a per-type code
+(`FEAT-12`, `FIX-7`, `TASK-3`…) and the external tracker assigned its own
+number, mirrored in an `external:` field. The code failed at its only job, being
+a stable handle: four codes were reused for two different issues each, one code
+named issues in two different applications, a duplicate existed only because the
+code rather than the identifier was being matched on, and the prefix was a
+second, weaker copy of `type` that went stale when a "feature" turned out to be
+a fix. The external tracker cannot reissue a number. **The cost is accepted**:
+an issue cannot be created offline, and a `status: open` row cannot exist before
+its external issue does, because before that it has no name.
+
+- **Labels and project are mandatory, and derived rather than chosen** — from
+  the row's `type`, its `epic`, and its application if there is more than one.
+  Put the mapping table here when the tracker is adopted. Create a new label or
+  project only when the user asks; if nothing fits, say so rather than inventing
+  a bucket. (Left optional, they lapsed: most open issues ended up with neither.)
+- Record the issue URL at the top of the capsule's `plan.md` (`url:`). The id is
+  already `id:`; do not write it twice.
+- **The external description stands on its own**: the problem, what changed,
+  how it was verified, what is left, and any constraint a reader must not
+  violate. Point at the `plan.md` path rather than duplicating the spec. For a
+  `status: open` row with no capsule, the description is the only detail there
+  is.
+- Keep it current: when the row's status or summary changes, update the external
+  issue in the same pass, and close it when the row moves to `pm/archive.yaml`.
+- **History keeps its own names.** If the project changes id schemes, rows in
+  `pm/archive.yaml`, entries in `pm/log.md`, notes in `context/`, and titles of
+  closed external issues stay exactly as written. A `depends_on` may then name an
+  old code — it is the id the archive is indexed by. Rewriting history to the
+  new scheme is not a cleanup, it is a falsification.
+
+**Without an external tracker**, `pm/` mints the id: one project-wide sequence,
+never a family per type, never reused.
 
 ## Planning Gate
 
@@ -110,7 +162,11 @@ agreed before it is built, not so that every change acquires paperwork.
   escape hatch that is always open.
 - **Confirm declared dependencies are `done`** — open ones in
   `pm/tracker.yaml`, closed ones in `pm/archive.yaml`. A `dropped` dependency is
-  **not** satisfied.
+  **not** satisfied. **A row's status can lag the code**, though: nothing forces
+  the close-out into the session that lands the implementation, and a
+  dependency has been merged while its row still read `planning`. Before
+  treating one as unmet, grep the code and migrations for what it was supposed
+  to produce.
 - **Inspect every affected table, constraint, relationship and nearby code path
   before changing persistence behaviour.** This one does not scale down.
 - The plan defines scope by observable behaviour, affected components, and
@@ -180,6 +236,22 @@ their framing a second time, build on their version instead of re-deriving it.
 **Continue through to verification** unless the user asked only for analysis,
 planning, review, or documentation.
 
+## Version Control
+
+- **Stage by path, never `git add -A` or `git add .`.** The worktree routinely
+  carries several issues in flight at once — a feature, an unrelated fix, and
+  `pm/` bookkeeping can all sit uncommitted beside the task at hand. Name the
+  files the task actually touched and leave the rest modified.
+- **The commit message carries `Refs {id}`.** When the work genuinely has no
+  issue, say so in the message rather than leaving the reader to wonder.
+- **Commit and push only when the user asks** — and push only when "push" was
+  said, not merely "commit".
+- **Record the branching model here, once.** Trunk-only (commit straight to
+  `main`, no pull requests) and branch-per-issue are both defensible; not
+  saying which is not. An agent left to guess will branch "to be safe", which on
+  a trunk-only project leaves work stranded on the remote until someone notices.
+  _This project:_ `{trunk-only | branch-per-issue}`.
+
 ## Terminology Rule
 
 When a concept has competing informal definitions across sources, **do not
@@ -210,7 +282,7 @@ tidy and unrecognised outside this repo. This project says **"Level"**, not
 6. **Delete the capsule** from `pm/issues/`. Git history keeps the plan, found
    by slug (`git log --all --diff-filter=D -- '*{slug}*'`).
 7. **Point `pm/active.json`** at the next issue, or clear it. Close the external
-   issue, if one exists.
+   issue, if one exists, with the same verification summary.
 
 Steps 1–3 are what "done" means. The rest is bookkeeping, and it takes a minute
 — but skipping straight to step 7 is what makes old work unreconstructable.
