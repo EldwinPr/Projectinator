@@ -56,7 +56,7 @@ stay current; other diagrams are optional.
 |---|---|
 | `python3 context/lint.py` | `0 error(s)`; at most a warning that the commit hook is not installed |
 | `python3 context/sync-manuals.py --check` | `ok: AGENTS.md is current` |
-| `python3 .agents/plugins/repo-guard/hooks/guard.py --selftest` | `ok: 18 denied, 12 allowed` |
+| `python3 .agents/plugins/repo-guard/hooks/guard.py --selftest` | `ok: 21 denied, 17 allowed` |
 | `git commit --allow-empty -m "test"` (hook installed) | rejected: needs `Refs <id>` or `(no issue)` |
 | Ask the agent to run `git add -A` | blocked by `repo-guard` |
 

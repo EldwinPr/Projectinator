@@ -19,19 +19,26 @@ which agent is calling, so it gets the base strength only.
 
 This is string matching on paths and commands, not a shell parser. It stops the honest
 mistake, not a determined workaround (a script that writes to input/), and it errs
-toward denying: a command whose text merely contains `.env` is blocked.
+toward denying: a command whose text merely contains `.env` is blocked. The protected
+folders are the repo's own: a path is checked relative to the repo root, so an app folder
+that only shares the name (src/components/input/) is not input/.
 
 Self-check: python3 guard.py --selftest
 """
 
 import json
+import os
 import re
 import sys
 
+# The repo root: this file is .agents/plugins/repo-guard/hooks/guard.py, four levels down.
+ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), *[".."] * 4))
 # Subagents that execute a plan and never commit; the caller reviews and commits.
 EXECUTOR_AGENTS = {"coder"}
-# Paths no agent writes (CLAUDE.md "Never"; generated manuals).
-PROTECTED_PATH = re.compile(r"(^|/)(input/|\.git/|AGENTS\.md$)")
+# Paths no agent writes (CLAUDE.md "Never"; generated manuals), relative to ROOT.
+PROTECTED_PATH = re.compile(r"^(input/|\.git/|AGENTS\.md$)")
+# The repo's input/ in a command: `input/`, `./input/` or under ROOT, never `src/input/`.
+INPUT_DIR = r"(?<![\w.\-/])(?:\./|" + re.escape(ROOT) + r"/)?input/"
 ENV_FILE = re.compile(r"(^|/)\.env$")
 # Tool names that write a file, across Claude Code and OpenCode.
 WRITER = re.compile(r"write|edit|patch", re.IGNORECASE)
@@ -42,7 +49,7 @@ GIT = r"\bgit(?:\s+-[cC]\s+\S+|\s+--\S+)*\s+"
 
 ALWAYS = [
     (re.compile(r"\.env(?!\.example)\b"), ".env holds secrets"),
-    (re.compile(r"(>>?|\btee\b|\brm\b|\bmv\b|\bcp\b|\btouch\b|\bmkdir\b|sed\s+-i)[^;&|\n]*\binput/"),
+    (re.compile(r"(>>?|\btee\b|\brm\b|\bmv\b|\bcp\b|\btouch\b|\bmkdir\b|sed\s+-i)[^;&|\n]*" + INPUT_DIR),
      "input/ is append-only client material"),
     (re.compile(GIT + r"add\s+(-A|--all|\.)(\s|$)"), "stage by path, never git add -A or ."),
     (re.compile(r"(\brm\b|\bmv\b|\bgit\s+rm\b)[^;&|\n]*context/gotchas\.md"),
@@ -69,6 +76,13 @@ def paths(args):
     return [p for p in found if isinstance(p, str)]
 
 
+def repo_relative(path):
+    """*path* relative to ROOT, or None when it lies outside the repo. A relative path is
+    taken from ROOT, which is where the agents run."""
+    rel = os.path.relpath(os.path.realpath(os.path.join(ROOT, path)), ROOT)
+    return None if rel == ".." or rel.startswith(".." + os.sep) else rel.replace(os.sep, "/")
+
+
 def verdict(call, executor=False):
     """Reason to deny *call*, or None to allow it."""
     tool = call.get("tool_name") or ""
@@ -77,7 +91,8 @@ def verdict(call, executor=False):
     for path in paths(args):
         if ENV_FILE.search(path):
             return f"{path} holds secrets (CLAUDE.md)"
-        if WRITER.search(tool) and PROTECTED_PATH.search(path):
+        rel = repo_relative(path)
+        if WRITER.search(tool) and rel and PROTECTED_PATH.search(rel):
             return f"{path} is protected (CLAUDE.md, Never)"
     command = args.get("command")
     if not isinstance(command, str):
@@ -95,10 +110,13 @@ def selftest():
 
     deny = [
         (call("write", path="input/2026-10-01-x/notes.md"), False),
-        (call("Edit", file_path="/repo/AGENTS.md"), False),
+        (call("Edit", file_path=os.path.join(ROOT, "AGENTS.md")), False),
+        (call("Write", file_path=os.path.join(ROOT, "input/2026-10-01-x/notes.md")), False),
         (call("Read", file_path="/repo/app/.env"), False),
         (call("apply_patch", patchText="*** Update File: input/a.md\n"), False),
         (call("Bash", command="echo hi > input/x.txt"), False),
+        (call("Bash", command="rm -rf ./input/old"), False),
+        (call("Bash", command=f"mv x {ROOT}/input/"), False),
         (call("Bash", command="cat app/.env"), False),
         (call("Bash", command="git add -A"), False),
         (call("Bash", command="git add ."), False),
@@ -118,6 +136,12 @@ def selftest():
         (call("Read", file_path="input/2026-10-01-x/notes.md"), True),
         (call("Edit", file_path="context/gotchas.md"), False),
         (call("Grep", path="input"), True),
+        # an app folder that only shares the name is not the repo's input/
+        (call("Write", file_path=os.path.join(ROOT, "src/components/input/Text.tsx")), False),
+        (call("write", path="src/components/input/Text.tsx"), False),
+        (call("Write", file_path="/tmp/input/x.txt"), False),
+        (call("Bash", command="cp t.tsx src/components/input/Text.tsx"), False),
+        (call("Bash", command="mkdir -p app/Forms/input/"), False),
         (call("Bash", command="grep -rn foo input/"), True),
         (call("Bash", command="cp .env.example .env.example.bak"), False),
         (call("Bash", command="git push origin main"), False),

@@ -27,6 +27,10 @@ context/files/*
 **/examples/**/*.png
 docs/diagrams/*.png
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # OS / editor noise
 Thumbs.db
 .DS_Store
