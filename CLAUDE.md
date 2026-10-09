@@ -118,6 +118,8 @@ reload and print the sheet after writing.
   `context/shape/README.md`). It biases a reading and never overrides code;
   raise a conflict with the user instead of resolving it yourself.
 - **A second opinion or independent audit** → `context/guide/cross-model-review.md`
+- **Delegating to a subagent, or the guard hook** → `context/guide/multi-agent.md`
+- **Starting or reshaping a `context/` layer** → `context/guide/building-the-layers.md`
 - **Documenting how modules communicate** → `context/guide/component-conventions.md`
 - **Client handed over raw material** (photos, scans, exports, emails,
   transcripts) → file it under `input/<YYYY-MM-DD-slug>/` with a `notes.md`;

@@ -44,11 +44,11 @@ is a complete, actor-meaningful interaction, not an internal computation step.
   assigning a new one. `UC BPMN` uses `UC-xx`; `UC Non-BPMN` uses `UC-Nxx`.
 - Never treat `docs/requests.md` as a task queue — append-only capture, promote explicitly.
 
-## Editing procedure (openpyxl, per the `xlsx` skill)
+## Editing procedure (openpyxl)
 
-This workbook has no formulas, so `recalc.py` isn't required for correctness (LibreOffice may
+This workbook has no formulas, so a recalculation pass isn't required for correctness (LibreOffice may
 not even be available in the environment — it wasn't in this project's Windows dev setup:
-`AF_UNIX` missing). Still follow the skill's font/style-matching guidance: copy the existing
+`AF_UNIX` missing). Still copy the existing
 data row's font/alignment/border/fill onto every new row rather than leaving default styling.
 
 **The one gotcha that has actually caused data loss on this file**: `openpyxl`'s `ws.max_row`

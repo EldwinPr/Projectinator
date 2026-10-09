@@ -31,3 +31,6 @@ docs/diagrams/*.png
 Thumbs.db
 .DS_Store
 desktop.ini
+
+# Anthropic's xlsx skill is source-available with a no-copies licence (THIRD_PARTY.md): never commit it.
+.claude/skills/xlsx/

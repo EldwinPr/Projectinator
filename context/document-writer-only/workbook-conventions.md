@@ -268,7 +268,7 @@ UC-to-code traceability lives in `context/index/map.md`, not in this workbook. T
 
 ## Editing `docs/workbook.xlsx` programmatically
 
-Use the `xlsx` skill (`openpyxl` — no formulas live in this workbook, so `recalc.py` isn't
+Use `openpyxl` (no formulas live in this workbook, so a recalculation pass isn't
 required, though it's harmless if LibreOffice is available in the environment; it wasn't in
 this project's Windows dev setup — `AF_UNIX` missing — so don't assume it'll run).
 

@@ -63,12 +63,13 @@ Those are `pm/tracker.yaml`, `pm/log.md`, and their existing owner respectively.
 
 ## Entry format
 
-Append to the bottom. One `##` section per observation.
+Append to the bottom. One `##` section per observation; delete the `_Empty. Append below._`
+line when you add the first.
 
 ```markdown
 ## Short name for the fact
 
-- **type:** convention | hazard | ownership | decision | tooling | shape
+- **type:** convention | hazard | trap | ownership | decision | tooling | workflow | shape
 - **area:** orders (shape entries only — the `context/shape/` file it feeds)
 - **date:** YYYY-MM-DD
 - **issue:** UC-07 (optional)

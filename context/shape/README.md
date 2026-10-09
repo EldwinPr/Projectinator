@@ -94,14 +94,14 @@ Draw the value chain once, left to right, with each area under the part of it
 that it covers — a reader should see which file to open before reading the
 table.
 
-| Area | File | App |
-|---|---|---|
-| — | _None yet._ | — |
+| Area | File | App | Message mentions |
+|---|---|---|---|
+| — | _None yet._ | — | — |
 
-Adding an area: add its row here, **and** its trigger words to
-`context/manual-opencode.md`'s routing table, then run
-`python3 context/sync-manuals.py`, so runtimes that follow pointers less
-reliably can still route to it.
+"Message mentions" is the trigger list: read the area's file when the user's message uses
+one of those words — the business's own terms, in its language, not the code's names. It is
+the only copy; `context/sync-manuals.py` copies it into the OpenCode manual. Adding an area:
+add its row here, then run `python3 context/sync-manuals.py`.
 
 ## Coverage
 

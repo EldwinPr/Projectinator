@@ -30,6 +30,8 @@ the oldest `date:`, it is worth a pass.
 
 ## It opens a PR, and it does not open an issue
 
+**Delivery follows the branching model** (`context/general-rules.md` → Version Control): where this says PR, a trunk-only project makes one commit instead, only when the user asks.
+
 This pass is **exempt** from the `tracker row ⟺ capsule ⟺ external issue` rule.
 It creates no `pm/` row and no external issue. Promotion is editorial work on
 `context/`, not tracked work; mirroring every pass into the tracker would bury

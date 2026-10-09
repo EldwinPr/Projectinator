@@ -27,7 +27,7 @@ this file stays about mechanics that apply regardless of diagram type:
   stderr — these are harmless Electron/Chromium GPU-cache warnings, not export failures. Check
   the actual exit and the presence of the output file, not the presence of these lines (pipe
   through `grep -v "ERROR:"` if the noise is distracting, but don't treat it as a signal).
-- LibreOffice-based tooling (e.g. the `xlsx` skill's `recalc.py`) is **not** usable in this
+- LibreOffice-based tooling (e.g. a spreadsheet recalculation script) is **not** usable in this
   environment (`AF_UNIX` missing on this Windows Python build) — irrelevant to `.drawio` work
   directly, but don't assume LibreOffice is available for any adjacent tooling either.
 

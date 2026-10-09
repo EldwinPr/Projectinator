@@ -118,6 +118,8 @@ reload and print the sheet after writing.
   `context/shape/README.md`). It biases a reading and never overrides code;
   raise a conflict with the user instead of resolving it yourself.
 - **A second opinion or independent audit** → `context/guide/cross-model-review.md`
+- **Delegating to a subagent, or the guard hook** → `context/guide/multi-agent.md`
+- **Starting or reshaping a `context/` layer** → `context/guide/building-the-layers.md`
 - **Documenting how modules communicate** → `context/guide/component-conventions.md`
 - **Client handed over raw material** (photos, scans, exports, emails,
   transcripts) → file it under `input/<YYYY-MM-DD-slug>/` with a `notes.md`;
@@ -174,11 +176,11 @@ Stop as soon as you have enough; a question may need only 1–3.
 5. Implementation only: `context/coder-only/README.md`, then only the files it
    names as relevant.
 
-#### Trigger words → shape note
+#### Trigger words → shape note (generated from the Areas table in `context/shape/README.md`)
 
-| If the message mentions… | Read `context/shape/…` |
+| Message mentions | Read `context/shape/…` |
 |---|---|
-| — | _No areas yet. Add a row whenever `context/shape/README.md` gains one._ |
+| — | _No areas yet. Add a row to the Areas table in `context/shape/README.md`._ |
 
 List the words the user actually types — UI labels and the business's own
 terms, in the business's language — not the code's names for them. A message

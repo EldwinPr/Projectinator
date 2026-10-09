@@ -34,48 +34,8 @@ Two carry more weight than the rest:
   deliberate violation gets "fixed" by the next person and re-violated by the
   one after that.
 
-### What `testing.md` will need to say
-
-These held in the project this framework came from, independent of its stack.
-Write each down, measured against your own setup, when the suite exists:
-
-- **Never overlap two runs against one shared test database.** Two runs that
-  both migrate and truncate the same database — a backgrounded one and a
-  foreground one, or two terminals — deadlock each other and fail whatever
-  happened to be running. One overlap produced 20 unrelated failures, another
-  92, none of which reproduced alone. **A failure count that moves between runs
-  is the tell**; a real regression fails the same tests every time.
-- **Parallel runs are safe only when each worker gets its own database.** That
-  property does not transfer between applications or configurations, so state
-  why it holds for this one.
-- **Parallelism pays off locally more than on CI.** A suite whose cost was
-  per-test application boot went from 313s to 57s on 16 local cores, but only
-  from 361s to 288s on a 2-core CI runner. Measure on each before promising a
-  number.
-- **Format only the files you changed**, with the formatter's changed-files
-  mode. A bare run reformats the whole repository and buries the real diff.
-- **Run a migration's rollback, not just the migration.** A migrate-then-rollback
-  check found two `down()` methods that had never worked. With manual deploys, a
-  broken rollback is otherwise discovered mid-incident, at the moment it is
-  needed.
-
-### If the project adds CI
-
-Record the choices as a decision; these are the ones that proved to matter:
-
-- **Decide whether CI reports or gates**, and say which. Reporting-only is
-  defensible — but then a red build will not stop a bad commit, and that
-  consequence is accepted in writing rather than papered over.
-- **A check that cries wolf destroys CI's only power, which is being read.** Run
-  change-based checks (tests, format) per push, and time-based checks
-  (dependency vulnerability audits, which go red on someone else's disclosure)
-  on a schedule.
-- **A check cannot watch what the workflow skips.** Skipping documentation-only
-  pushes to save minutes also blinds any check about documentation files; see
-  `context/distill.md` → "When it runs".
-- **Keep deployment out of it unless it is chosen deliberately.** Anything
-  committed that schedules itself runs wherever the repository is pulled —
-  including a production server deployed by `git pull`.
+What `testing.md` will need to say, and what to record if the project adds CI, is in
+`context/guide/building-the-layers.md` (not loaded for ordinary coding tasks).
 
 ## Load Order
 

@@ -17,7 +17,8 @@ over weeks, and overlapping ones promote as a single passage, not several.
 
 ## What you produce
 
-A branch and a pull request containing both halves together:
+A branch and a pull request containing both halves together (on a trunk-only project, one
+commit instead, and only when the user asks; `context/general-rules.md` → Version Control):
 
 1. **The promotions** — each surviving entry written into the `context/` file
    that owns its subject, in that file's voice, keeping the evidence.

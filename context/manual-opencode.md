@@ -35,11 +35,9 @@ Stop as soon as you have enough; a question may need only 1–3.
 5. Implementation only: `context/coder-only/README.md`, then only the files it
    names as relevant.
 
-#### Trigger words → shape note
+#### Trigger words → shape note (generated from the Areas table in `context/shape/README.md`)
 
-| If the message mentions… | Read `context/shape/…` |
-|---|---|
-| — | _No areas yet. Add a row whenever `context/shape/README.md` gains one._ |
+{{SHAPE_TRIGGERS}}
 
 List the words the user actually types — UI labels and the business's own
 terms, in the business's language — not the code's names for them. A message

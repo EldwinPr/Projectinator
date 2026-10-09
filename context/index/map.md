@@ -5,16 +5,8 @@ code — that realise it. Agents load this to navigate without re-reading the
 whole repository; humans use it for tickets and onboarding. Update it when
 ownership changes, not merely because a file exists.
 
-> **NOT MACHINE-PARSED, by design.** This is an index of pointers — closer to a
-> class diagram in text than to a config file. It is read, never loaded: no
-> tooling parses it, and `note:` values are prose that may contain colons,
-> quotes, or anything else that helps a reader. The `key: value` shape below is
-> for human and agent legibility only. The file is `.md`, not `.yaml`, precisely
-> so that nothing — reader or tool — expects it to parse. Do not "fix" it into
-> strict YAML, and do not build tooling that parses it.
->
-> (Renamed from `map.yaml`. The extension was the only signal a reader got
-> before this warning, and it promised the wrong thing.)
+> **Not machine-parsed, by design**: prose pointers, `.md` not `.yaml` on purpose. Do not
+> convert it to YAML or build tooling that parses it (why: `context/guide/building-the-layers.md`).
 
 **This file is the prose layer** — ownership, use cases, and the "why" that no
 scanner can produce. It does not hold the inventory. `context/index/README.md`

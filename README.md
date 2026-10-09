@@ -1,4 +1,8 @@
-# bpmn-to-erp
+# Projectinator
+
+> **Status: early.** A working template distilled from real projects. Its author has used it
+> end to end; nobody else has tried it yet, so expect rough edges. Start at
+> [`QUICKSTART.md`](QUICKSTART.md). (Earlier working title: bpmn-to-erp.)
 
 A working setup for building an ERP — **context management, an index agents can
 navigate, and lightweight project state** — with a documentation layer attached
@@ -20,6 +24,7 @@ their keep.
 
 | Path | What it is |
 |---|---|
+| `QUICKSTART.md` | What to do: start a project from this repo, a first session, a five-minute check, what to report if you are testing it. |
 | `CLAUDE.md` | The procedure manual — what to do, and the few rules that must not be missed. |
 | `AGENTS.md` | **Generated** from `CLAUDE.md` by `context/sync-manuals.py`, plus an explicit step-by-step operating procedure (`context/manual-opencode.md`) for runtimes that follow pointers less reliably. Never edited by hand. |
 | `opencode.json` / `.opencode/` | Cross-model setup: loads `AGENTS.md` as the manual and mirrors the subagents, so a reviewer model starts with project context instead of blind, plus a `coder` agent that implements one confirmed issue per call. See `context/guide/cross-model-review.md`. |
@@ -32,13 +37,17 @@ their keep.
 | `context/coder-only/` | Implementation conventions. Its README says what to create once a stack is chosen. |
 | `context/document-writer-only/` | Per-artifact conventions: ERD first, then BPMN, class, state, workbook, plus the cross-cutting draw.io guide. |
 | `context/document-writer-only/examples/` | Verified worked examples, and `elements.drawio` — the living shape palette. |
-| `context/guide/` | Component-diagram conventions; the cross-model review workflow. |
+| `context/guide/` | The multi-agent baseline and the guard; component-diagram conventions; the cross-model review workflow; `building-the-layers.md` (how to start a layer). |
+| `context/lint.py` | Consistency checks for the context layer: stale `AGENTS.md`, dangling paths, the decisions index, the learning buffer, uncredited skills. |
 | `context/files/` | Published third-party specs the conventions are distilled from (OMG BPMN, UML). |
 | `input/` | Raw client source material, one folder per intake event. Append-only. |
 | `docs/` | Client deliverables: `workbook.xlsx`, `requests.md`, `fr-nfr.md`, `statuses.md`, `rbac-entities.csv`. |
 | `pm/` | Work state: `tracker.yaml` (open only), `archive.yaml` (closed), `issues/{slug}/` (the capsule of anything open), `log.md`, `todo.md`, `active.json`. |
-| `.claude/agents/` | Specialist subagents for the error-prone artifacts, plus the distill agent. |
-| `.claude/skills/` | Tooling skills (`drawio`, `xlsx`, `doc-coauthoring`), and `harvest`, which drafts shape entries from the user's own messages in the transcripts. |
+| `THIRD_PARTY.md` | Credits and licences for vendored files, what is deliberately not vendored, and recommended skills |
+| `.claude/agents/` | Specialist subagents for the error-prone artifacts, plus the distill agent and `coder`. |
+| `.claude/settings.json`, `.agents/plugins/repo-guard/`, `.opencode/plugin/` | The guard: one script that denies tool calls breaking the "Never" rules, wired into Claude Code and OpenCode. |
+| `.githooks/` | The commit-message check (`Refs <id>` or "no issue"); turn on with `git config core.hooksPath .githooks`. |
+| `.claude/skills/` | Tooling skills (`drawio`; credits and licences in `THIRD_PARTY.md`), and `harvest`, which drafts shape entries from the user's own messages in the transcripts. |
 
 ## How work actually flows
 
@@ -186,7 +195,7 @@ load.
 | `bpmn-drawio-author` | BPMN diagrams |
 | `workbook-xlsx-author` | Use cases, promoting requests, the Entities dedup |
 | `distill` | The distill pass over the learning buffer |
-| `coder` (opencode only) | Implementing one confirmed issue per invocation, with an optional deferred-verification mode for batches |
+| `coder` | Implementing one confirmed issue per invocation, with an optional deferred-verification mode for batches; never stages, commits or pushes |
 
 ## Environment notes
 
@@ -201,8 +210,9 @@ load.
   silently clobbered rows and blanked a header three separate times. Reload and
   print the sheet after writing; clear an oversized range and `delete_rows()`
   down; rewrite headers last.
-- **LibreOffice may be unavailable**, which disables the `xlsx` skill's
-  `recalc.py`. Do not assume adjacent tooling can call it either.
+- **LibreOffice may be unavailable**, which disables formula recalculation (Anthropic's
+  `xlsx` skill ships a `recalc.py` for it; not vendored, see `THIRD_PARTY.md`). Do not
+  assume adjacent tooling can call it either.
 
 There is **no CI here**, deliberately. The checks that matter — render the
 diagram and look at it, regenerate the index, run the suite — are steps in the
